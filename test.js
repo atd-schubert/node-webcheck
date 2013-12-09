@@ -12,6 +12,7 @@ webchecker.analyzer.use(Webcheck.middleware.analyze.W3CValidate());
 webchecker.analyzer.use(Webcheck.middleware.analyze.mimeType());
 webchecker.analyzer.use(Webcheck.middleware.analyze.img());
 
+
 webchecker.reporter.use(Webcheck.middleware.report.statusCodeCheck());
 
 webchecker.reporter(function(err, result, report){
