@@ -9,7 +9,7 @@ First install:
 Simply use:
     
     var Webcheck = require("webcheck");
-    check = new Webcheck("http://nodejs.org");
+    check = new Webcheck({pageRoot:"http://nodejs.org"});
     check.analyzer.use(Webcheck.middleware.analyzer.keywords()); // register middleware for the analyzer this way...
     check.reporter.use(Webcheck.middleware.report.statusCodeCheck()); // register middleware for the reporter this way...
     check.reporter(function(err, reslut, report){
