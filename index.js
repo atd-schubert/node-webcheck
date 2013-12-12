@@ -1,8 +1,25 @@
 var crawler = require("crawl").crawl;
 var path = require("path");
 var async = require("async");
-var console = require("log-colors");
 var Worker = require("./lib/job.js").Worker;
+var ree = require("./lib/ree");
+
+var getFn = function(elem){
+  return function(cb){
+    elem.worker.exec(cb);
+  };
+};
+      
+var getSeriesFn = function(elem){
+  return function(cb){
+    elem.worker.execSeries(cb);
+  };
+};
+var getParallelFn = function(elem){
+  return function(cb){
+    elem.worker.execParallel(cb);
+  };
+};
 
 
 var Webcheck = function(opts) {
@@ -10,7 +27,7 @@ var Webcheck = function(opts) {
   // if(!opts.pageRoot) throw new Error("You have to specify a pageRoot to start crawling \"new Webcheck({pageRoot: 'http://nodejs.org'})\"...");
 
   // Read opts
-  this.pageRoot = opts.pageRoot || "http://nodejs.org";
+  this.pageRoot = opts.url || "http://nodejs.org";
   this.result = {};
   this.report = {};
   
@@ -18,21 +35,34 @@ var Webcheck = function(opts) {
   var middlewaresReporter = [];
   var self = this;
   
-  var status = {
-    crawled: false,
-    analyzed: false,
-    reported: false
-  };
   
-  this.crawlWebsite = function(cb) {
+  this.crawler = function(cb) {
+    var start = Date.now();
+    self.crawler.emit("start", start);
+    
+    crawler(self.pageRoot, function(err, crawlResult){
+      if(err) return cb(err);
+      self.crawler.results = crawlResult;
+      self.crawler.status = "finished";
+      
+      self.crawler.emit("finish", start, Date.now(), crawlResult);
+      cb(null, crawlResult);
+      
+    });
+
+  };
+  ree(this.crawler);
+  
+  this.analyzer = function(cb) {
+    
+    var start;
+    
     var pages = {};
     var checksums = {};
     var list = [];
-    var start = Date.now();
     
-    var output = { websites: {}, checksums: checksums, list:list};
-    output.websites[self.pageRoot] = {pages: pages};
-    
+    var output = self.analyzer.results = { list:list, pages:pages};
+
     var mkPageObj = function(result){
       
       var target = {
@@ -51,89 +81,71 @@ var Webcheck = function(opts) {
       return target;
     };
     
-    console.info("Start crawling in "+self.pageRoot);
     
-    crawler(self.pageRoot, function(err, crawlResult){
-      if(err) return cb(err);
-      
-      var i = 0;
-      var currentPO = {};
-      for (i=0; i<crawlResult.length; i++) {
-        currentPO = mkPageObj(crawlResult[i]);
-        list.push(currentPO);
-        pages[currentPO.url.relative] = currentPO;
-        checksums[crawlResult[i].checksum] = {};
-        checksums[crawlResult[i].checksum][currentPO.url.absolute] = currentPO;
-        
-      }
-      
-      console.info("Finish crawling for "+self.pageRoot+" in "+((Date.now()-start)/1000)+"s...");
-      console.info("Have "+crawlResult.length+" files crawled...");
-      
-      status.crawled = true;
-      
-      self.result = output;
-      cb(null, output);
-      
-    });
-
-  };
-  this.analyzer = this.analyze = function(cb) {
-    console.info("Start analyzing "+self.pageRoot+"...");
-    var start = Date.now();
     
     var analyzeCrawled = function(err){
       if(err) return cb(err);
-      var result = self.result;
+      start = Date.now();
+      self.analyzer.emit("start", start);
+      var cr = self.crawler.results;
       var hash;
       var path;
       var i, n;
-      var asyncArray = [];
-      var getFn = function(elem){
-        return function(cb){
-          elem.worker.exec(cb);
-        };
-      };
+      var asyncParallelArray = [];
+      var asyncSeriesArray = [];
+
       
-      for(n=0; n<result.list.length; n++) {
+      var currentPO = {};
+      for (i=0; i<cr.length; i++) {
+        currentPO = mkPageObj(cr[i]);
+        list.push(currentPO);
+        pages[currentPO.url.absolute] = currentPO;
+      }
+      
+      for(n=0; n<list.length; n++) {
         for(i=0; i<middlewaresAnalyzer.length; i++) {
-          middlewaresAnalyzer[i].mkJob(result.list[n], result);
+          middlewaresAnalyzer[i].mkJob(list[n], output);
         }
       }
       
       for(i=0; i<middlewaresAnalyzer.length; i++) {
-        asyncArray.push(getFn(middlewaresAnalyzer[i]));
+        asyncParallelArray.push(getParallelFn(middlewaresAnalyzer[i]));
+        asyncSeriesArray.push(getSeriesFn(middlewaresAnalyzer[i]));
       }
       
-      async.series(asyncArray, function(err){
-        console.info("Analyze is ready in "+(Date.now()-start)/1000+"s...");
+      async.series(asyncSeriesArray, function(err){
+        if(err) return cb(err);
+        async.parallel(asyncParallelArray, function(err){
         
-        status.analyzed = true;
-        cb(err, result);
+          self.analyzer.status = "finished";
+          
+          self.analyzer.emit("finish", start, Date.now(), output);
+          cb(err, output);
+        });
       });
+      
     };
-    status.crawled ? analyzeCrawled(null) : self.crawlWebsite(analyzeCrawled);
-
+    self.crawler.status === "finished" ? analyzeCrawled(null) : self.crawler(analyzeCrawled);
   };
+  ree(this.analyzer);
+  
   this.reporter = function(cb) {
-    console.info("Start reporter...");
-    var start = Date.now();
+    
+    var start;
     var self = this;
-    self.report= {};
     
     var reportAnalyzed = function(err){
       if(err) return cb(err);
-      var result = self.result;
-      var report = self.report;
+      start = Date.now();
+      self.reporter.emit("start", start);
+      var result = self.analyzer.results;
+      var report = self.reporter.results = {};
       var hash;
       var path;
       var i, n;
-      var asyncArray = [];
-      var getFn = function(elem){
-        return function(cb){
-          elem.worker.exec(cb);
-        };
-      };
+      var asyncParallelArray = [];
+      var asyncSeriesArray = [];
+      
       
       for(n=0; n<result.list.length; n++) {
         for(i=0; i<middlewaresReporter.length; i++) {
@@ -142,53 +154,53 @@ var Webcheck = function(opts) {
       }
       
       for(i=0; i<middlewaresReporter.length; i++) {
-        asyncArray.push(getFn(middlewaresReporter[i]));
+        asyncParallelArray.push(getParallelFn(middlewaresReporter[i]));
+        asyncSeriesArray.push(getSeriesFn(middlewaresReporter[i]));
       }
       
-      async.series(asyncArray, function(err){
-        console.info("Reporter is ready in "+(Date.now()-start)/1000+"s...");
-        
-        status.reported = true;
-        cb(err, result, report);
+      async.series(asyncSeriesArray, function(err){
+        if(err) return cb(err);
+        async.parallel(asyncParallelArray, function(err){
+          self.reporter.status = "finished";
+          self.crawler.emit("finish", start, Date.now(), report);
+          cb(err, report);
+        });
       });
     };
-    status.analyzed ? reportAnalyzed(null) : self.analyze(reportAnalyzed);
+    self.analyzer.status === "finished" ? reportAnalyzed(null) : self.analyzer(reportAnalyzed);
 
   };
-  
+  ree(this.reporter);
   this.analyzer.use = function(middleware, opts){
     var worker = new Worker();
-    worker.on("start", function(obj, start){
-      jobs = obj.jobs.series.length+obj.jobs.parallel.length;
-      console.info("Started worker '"+obj.name+"' with "+jobs+" jobs...");
-    });
-    worker.on("finish", function(err, obj, start, end){
-      console.info("Finished worker '"+obj.name+"' in "+((end-start)/1000)+" seconds...");
-    });
     var obj = {
       middleware: middleware,
       worker: worker,
       mkJob: middleware(worker)
     };
     middlewaresAnalyzer.push(obj);
+    this.emit("use", middleware, worker);
+    return worker;
   };
   
   this.reporter.use = function(middleware, opts){
     var worker = new Worker();
-    worker.on("start", function(obj, start){
-      jobs = obj.jobs.series.length+obj.jobs.parallel.length;
-      console.info("Started worker '"+obj.name+"' with "+jobs+" jobs...");
-    });
-    worker.on("finish", function(err, obj, start, end){
-      console.info("Finished worker '"+obj.name+"' in "+((end-start)/1000)+" seconds...");
-    });
     var obj = {
       middleware: middleware,
       worker: worker,
       mkJob: middleware(worker)
     };
     middlewaresReporter.push(obj);
+    this.emit("use", middleware, worker);
+    return worker;
   };
+  
+  this.crawler.status="no data";
+  this.analyzer.status="no data";
+  this.reporter.status="no data";
+  this.crawler.results=[];
+  this.analyzer.results={};
+  this.reporter.results={};
 
 };
 Webcheck.middleware = require("./lib/middleware");
