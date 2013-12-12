@@ -1,3 +1,4 @@
+"use strict";
 var crawler = require("crawl").crawl;
 var path = require("path");
 var async = require("async");

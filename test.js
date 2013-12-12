@@ -1,3 +1,4 @@
+"use strict";
 var Webcheck = require("./index.js");
 
 var fs = require('fs');
