@@ -26,7 +26,7 @@ var getParallelFn = function(elem){
 var Webcheck = function(opts) {
   if(!opts) opts = {};
   // if(!opts.pageRoot) throw new Error("You have to specify a pageRoot to start crawling \"new Webcheck({pageRoot: 'http://nodejs.org'})\"...");
-
+  // TODO: logging = opts.logging || false;
   // Read opts
   this.pageRoot = opts.url || "http://nodejs.org";
   this.result = {};

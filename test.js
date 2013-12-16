@@ -16,6 +16,8 @@ webchecker.analyzer.use(Webcheck.middleware.analyze.mimeType());
 webchecker.analyzer.use(Webcheck.middleware.analyze.img());
 
 webchecker.reporter.use(Webcheck.middleware.report.statusCodeCheck());
+webchecker.reporter.use(Webcheck.middleware.report.keywords());
+webchecker.reporter.use(Webcheck.middleware.report.W3CValidate());
 
 
 /*webchecker.crawler.results = require("./crawler.json");
