@@ -19,15 +19,14 @@ webchecker.reporter.use(Webcheck.middleware.report.statusCodeCheck());
 webchecker.reporter.use(Webcheck.middleware.report.keywords());
 webchecker.reporter.use(Webcheck.middleware.report.W3CValidate());
 
+/*
+webchecker.crawler.set(require("./crawler.json"));
 
-/*webchecker.crawler.results = require("./crawler.json");
-webchecker.crawler.status = "finished";
-
-webchecker.analyzer.results = require("./analyzer-complete.json");
-webchecker.analyzer.status = "finished";
+webchecker.analyzer.set(require("./analyzer.json"));
 */
+
 webchecker.reporter(function(err, result){
-  results = {
+  var results = {
     crawler: webchecker.crawler.results,
     analyzer: webchecker.analyzer.results,
     reporter: webchecker.reporter.results,

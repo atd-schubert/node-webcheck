@@ -196,6 +196,12 @@ var Webcheck = function(opts) {
     return worker;
   };
   
+  
+  this.reporter.set = this.analyzer.set = this.crawler.set = function(data){
+    this.status = "finished";
+    this.results = data;
+  };
+  
   this.crawler.status="no data";
   this.analyzer.status="no data";
   this.reporter.status="no data";
