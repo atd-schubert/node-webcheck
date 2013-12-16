@@ -22,7 +22,6 @@
     "url": "https://github.com/atd-schubert/node-webcheck/issues"
   },
   "dependencies": {
-    "auto-keywords": "0.0.2",
     "crawl": "~0.3.1",
     "w3cjs": "~0.1.20",
     "jsdom": "~0.8.8",
