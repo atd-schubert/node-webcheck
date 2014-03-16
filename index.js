@@ -1,5 +1,6 @@
 "use strict";
-var crawler = require("crawl").crawl;
+
+var crawler = require("./lib/crawler");
 var path = require("path");
 var async = require("async");
 var Worker = require("./lib/job.js").Worker;
@@ -37,11 +38,15 @@ var Webcheck = function(opts) {
   var self = this;
   
   
-  this.crawler = function(cb) {
+  this.crawler = function(cb, opts) {
     var start = Date.now();
+    opts = opts || {};
+    opts.eventEmitter = function(){
+      self.crawler.emit.apply(self.crawler, arguments);
+    };
     self.crawler.emit("start", start);
     
-    crawler(self.pageRoot, function(err, crawlResult){
+    crawler(self.pageRoot, opts, function(err, crawlResult){
       if(err) return cb(err);
       self.crawler.results = crawlResult;
       self.crawler.status = "finished";
