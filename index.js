@@ -216,5 +216,6 @@ var Webcheck = function(opts) {
 
 };
 Webcheck.middleware = require("./lib/middleware");
+Webcheck.logger = require("./lib/logger");
 
 module.exports = exports = Webcheck;

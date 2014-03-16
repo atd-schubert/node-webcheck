@@ -5,7 +5,7 @@ var fs = require('fs');
 var logger = require('./lib/logger');
 
 var webchecker = new Webcheck({url: "http://digitalcourage.de/"});
-logger(webchecker, {workerTimeout:10000});
+Webcheck.logger(webchecker, {workerTimeout:10000});
 
 webchecker.analyzer.use(Webcheck.middleware.analyze.fetchDocument({filterFn: function(po){return po.contentType.indexOf("text/html")>=0 || po.contentType.indexOf("text/css")>=0;}}));
 webchecker.analyzer.use(Webcheck.middleware.analyze.countTags({tags: ["title", "h1", "h2", "h3", "h4", "p", "b"]}));
