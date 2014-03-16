@@ -42,6 +42,7 @@ As options you can set:
     
 ### Make this module verbose (especially for debuging)
 You can get additional informations by using the build-in logger. Activate it the following way to get detailed informations on the process:
+
     var Webcheck = require("webcheck");
     check = new Webcheck({pageRoot:"http://nodejs.org"});
     Webcheck.logger(check, {workerTimeout:10000});
