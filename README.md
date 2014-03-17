@@ -17,6 +17,9 @@ Simply use:
       console.log(JSON.stringify(report, null, 4));
     });
 
+### Concept of this module
+This module first crawls a webpage from given root URL. After this it can analyze the pages by adding middlewares to the analyzer from the result of the crawler. In the last step it can make a report by adding middlewares to the reporter from the result of the analyzer. There are a few implemented middlewares for analyzer and reporter, but especially the reporter-middlewares depends on your own concept. If you build a middleware that you think is missing in this module, feel free to make a pull request on [github](https://github.com/atd-schubert/node-webcheck/)...
+
 ## Enhance use
 
 ### Configure the crawler
