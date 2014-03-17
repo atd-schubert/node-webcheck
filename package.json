@@ -1,6 +1,6 @@
 {
   "name": "webcheck",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "description": "A module to analyse websites for SEO, validation and code-quality",
   "main": "index.js",
   "scripts": {
