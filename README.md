@@ -4,7 +4,7 @@ This module is for analyzing websites.
 ## How to use
 
 First install:
-    npm insatll webcheck
+    npm install webcheck
 
 Simply use:
     
@@ -23,7 +23,7 @@ This module first crawls a webpage from given root URL. After this it can analyz
 ## Enhance use
 
 ### Configure the crawler
-You can configure the crawler by calling the crawler seperately:
+You can configure the crawler by calling the crawler separately:
 
     var Webcheck = require("webcheck");
     check = new Webcheck({pageRoot:"http://nodejs.org"});
@@ -38,10 +38,10 @@ As options you can set:
 - timeout: time to wait for an response (default 60000)
 - userAgent: the string passed as user agent (default "node-webcheck")
 - retries: number of retries if case of failing a request (default 3)
-- retryTimeout: time to wait before request agoin (default 10000)
+- retryTimeout: time to wait before request again (default 10000)
 - skipForeigners: completely pass resources that have not the same domain (default false)
-- followForeigners: crawl resourses that are linked on pages wich are not on the same domain like the base URL (default false)
-- forceUTF8: convert all resources to utf-8 and don't care futher on encodings (default true)
+- followForeigners: crawl resources that are linked on pages wich are not on the same domain like the base URL (default false)
+- forceUTF8: convert all resources to utf-8 and don't care further on encodings (default true)
     
 ### Make this module verbose (especially for debuging)
 You can get additional informations by using the build-in logger. Activate it the following way to get detailed informations on the process:
@@ -162,7 +162,7 @@ For further informations please look at /lib/logger.js. You simple have to liste
 - finish: returns the timestamp of the start, the timestamp of the end, and the result from the crawler
 - base: returns the base url, that will be crawled
 - crawling: returns the URL of the element that will be crawled at the moment
-- crawlingError: returns the error that occured during the crawling process
+- crawlingError: returns the error that occurred during the crawling process
 - reference: returns the url of the reference that the crawler found and the url of the document where it is liked from
 
 ### Analyzer
