@@ -9,8 +9,8 @@ First install:
 Simply use:
     
     var Webcheck = require("webcheck");
-    check = new Webcheck({pageRoot:"http://nodejs.org"});
-    check.analyzer.use(Webcheck.middleware.analyzer.keywords()); // register middleware for the analyzer this way...
+    check = new Webcheck({url:"http://nodejs.org"});
+    check.analyzer.use(Webcheck.middleware.analyze.keywords()); // register middleware for the analyzer this way...
     check.reporter.use(Webcheck.middleware.report.statusCodeCheck()); // register middleware for the reporter this way...
     check.reporter(function(err, result, report){
       if(err) return console.error(err);
@@ -26,7 +26,7 @@ This module first crawls a webpage from given root URL. After this it can analyz
 You can configure the crawler by calling the crawler separately:
 
     var Webcheck = require("webcheck");
-    check = new Webcheck({pageRoot:"http://nodejs.org"});
+    check = new Webcheck({url:"http://nodejs.org"});
     check.crawler(callbackFunction, options);
 
 Note that the callback return the following parameters:
@@ -47,7 +47,7 @@ As options you can set:
 You can get additional informations by using the build-in logger. Activate it the following way to get detailed informations on the process:
 
     var Webcheck = require("webcheck");
-    check = new Webcheck({pageRoot:"http://nodejs.org"});
+    check = new Webcheck({url:"http://nodejs.org"});
     Webcheck.logger(check, {workerTimeout:10000});
     check.analyzer.use(Webcheck.middleware.analyzer.keywords()); // register middleware for the analyzer this way...
     check.reporter.use(Webcheck.middleware.report.statusCodeCheck()); // register middleware for the reporter this way...
@@ -62,7 +62,7 @@ The workerTimeout specifies the time to wait to give again informations of a run
 If you have a (saved) result of the crawler you can set it and pass the crawling again by (you have the results set to crawlResult):
 
     var Webcheck = require("webcheck");
-    check = new Webcheck({pageRoot:"http://nodejs.org"});
+    check = new Webcheck({url:"http://nodejs.org"});
     
     check.crawler.results = crawlResult;
     check.crawler.status = "finished";
@@ -114,7 +114,7 @@ For further informations please look at /lib/middleware.
               console.log("This is a HTML file...");
               cb();
             }
-            worker.addJob(fn, {method: "parallel"});
+            worker.addJob(fn, {method: "parallel", name:"Name of this job"});
           }
           return;
         };
@@ -147,7 +147,7 @@ For further informations please look at /lib/middleware.
               getEntry("info").push("This is a HTML file...");
               cb();
             }
-            worker.addJob(fn, {method: "parallel"});
+            worker.addJob(fn, {method: "parallel", name:"Name of this job"});
           }
           return;
         };
