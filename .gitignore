@@ -4,3 +4,5 @@
 docs/
 node_modules
 lib/middleware/rm.js
+_tmp/
+tmp.js
