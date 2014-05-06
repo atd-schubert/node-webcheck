@@ -1,6 +1,6 @@
 {
   "name": "webcheck",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "A module to analyse websites for SEO, validation and code-quality",
   "main": "index.js",
   "scripts": {
@@ -22,7 +22,6 @@
     "url": "https://github.com/atd-schubert/node-webcheck/issues"
   },
   "dependencies": {
-    "jsdom": "~0.8.8",
     "async": "~0.2.9",
     "crawler": "~0.2.5",
     "url": "~0.7.9",
