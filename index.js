@@ -1,5 +1,7 @@
 "use strict";
 
+// TODO: rename pageObject to Resource!!! Think on getPageObject... Rename results to getResources.
+
 var Crawler = require("crawler").Crawler;
 var util = require("util");
 var async = require("async");
@@ -51,11 +53,11 @@ var Webcheck = exports = module.exports = function Webcheck(params) { // params 
       if(results[result.request.href]) return;
       
       
-      var po = new PageObject(result);
+      var ro = new Resource(result);
       queued[result.request.href] = true;
-      async.applyEach(analyzerMiddlewares, po, function callback(err){
+      async.applyEach(analyzerMiddlewares, ro, function callback(err){
         if(err)console.error(err);
-        po.clean();
+        ro.clean();
       });
     },
     "onDrain": function(){ // no arguments!
@@ -65,8 +67,9 @@ var Webcheck = exports = module.exports = function Webcheck(params) { // params 
     }
   });
   
-  var PageObject = function(result){ // result = request->result
-    var po = this;
+  var Resource = function(result){ // result = request->result
+    var ro = this;
+    //self.emit("createdResource", po);
     
     //if(results[result.request.href]) {  console.log("A second PO!!!"+result.request.href); process.exit();}
     results[result.request.href] = this;
@@ -75,95 +78,93 @@ var Webcheck = exports = module.exports = function Webcheck(params) { // params 
     var report = {};
     var resources = {}; // {"http://url": count}
     var refferers = {}; // {"http://url": count}
-    var poURL = result.request.href;
+    var roURL = result.request.href;
     
-    po.getResult = function(){
+    ro.getResult = function(){
       return result;
     };
-    po.getURL = function(){
-      return poURL;
+    ro.getURL = function(){
+      return roURL;
     };
-    po.getWebcheck = function(){
+    ro.getWebcheck = function(){
       return self;
     };
-    po.addAnalysis = function(hash, data) { // emit addAnalysis emit("addAnalysis", {po:po, analysis:data}); emit("addAnalysis:"+hash, {po:po, analysis:data}); emit("addAnalysis:"+po.getURL()+":"+hash, {po:po, analysis:data});
+    ro.addAnalysis = function(hash, data) {
 
       analysis[hash] = data;
       
-      self.emit("analysis", {name:hash, data:data, pageObject:po});
-      return po;
+      self.emit("addAnalysis", {name:hash, data:data, resource:ro});
+      return ro;
     };
-    po.removeAnalysis = function(hash) {
+    ro.removeAnalysis = function(hash) {
       analysis[hash] = null;
-      return po;
+      return ro;
     };
-    po.getAnalysis = function(optHash) {
+    ro.getAnalysis = function(optHash) {
       if (optHash) return analysis[optHash];
       return analysis;
     };
-    po.addReport = function(level, name, data) { // emit addReport
+    ro.addReport = function(level, name, data) {
       if(!report[name]) report[name] = {};
       report[name][level] = data; // recommandations for data: {message: "", test: "Name of the test"}
-      self.emit("report", {level:level, name:name, data:data, pageObject:po});
-      return po;
+      self.emit("addReport", {level:level, name:name, data:data, resource:ro});
+      return ro;
     };
-    po.getReport = function(optHash, optName) {
+    ro.getReport = function(optHash, optName) {
       if(optName) return report[optHash] ? report[optHash][optName] : {};
       if(optHash) return report[optHash];
       return report;
     };
-    po.follow = function(href) {
+    ro.follow = function(href) {
       href = shortenURL(href);
-      po.addResource(href);
+      ro.addResource(href);
       if(!queued[href] && href.substr(0,4)=="http") { // TODO maybe replace with url.format()[protocol]...
         queued[href] = true;
         self.queue(href);
       }
-      return po;
+      return ro;
     };
-    po.addResource = function(href) { // TODO: absolute url!
+    ro.addResource = function(href) { // TODO: absolute url!
       href = shortenURL(href);
       if(resources[href]) resources[href]++;
       else resources[href] = 1;
       
-      var refferer = self.getPageObject(href);
-      if(refferer) refferer.addRefferer(po.getURL());
+      var refferer = self.getResource(href);
+      if(refferer) refferer.addRefferer(ro.getURL());
       else self.on("resource:"+href, function(refferer){
-        refferer.addRefferer(po.getURL());
+        refferer.addRefferer(ro.getURL());
       });
       
-      return po;
+      return ro;
     };
-    po.getResources = function() {
+    ro.getResources = function() {
       return resources;
     };
-    po.getRefferers = function() {
+    ro.getRefferers = function() {
       return refferers;
     };
-    po.addRefferer = function(href) {
+    ro.addRefferer = function(href) {
       href = shortenURL(href);
       if(refferers[href]) refferers[href]++
       else refferers[href] = 1;
-      return po;
+      return ro;
     };
-    po.clean = function(){ // procedure to free memory
+    ro.clean = function(){ // procedure to free memory
       result = false;
-      po.follow = po.addResource;
+      ro.follow = ro.addResource;
+      return ro;
     };
     
-    self.emit("resource", po);
-    self.emit("resource:"+result.request.href, po);
-    
-    self.emit("createdPageObject", po); 
+    self.emit("resource", ro);
+    self.emit("resource:"+result.request.href, ro); 
   };
-  //util.inherits(PageObject, EventEmitter);
   //: Setter, getter for Webcheck
   
   this.getResults = function(){
     return results;
   };
   this.getReport = function(optHash){
-    if(optHash) return this.getPageObject(optHash).getReport();
+    if(optHash) return this.getResource(optHash).getReport();
     var hash;
     var res = {};
     for (hash in results) {
@@ -187,7 +188,7 @@ var Webcheck = exports = module.exports = function Webcheck(params) { // params 
     return res;
   };
   this.getAnalysis = function(optHash){
-    if(optHash) return this.getPageObject(optHash).getAnalysis();
+    if(optHash) return this.getResource(optHash).getAnalysis();
     var hash;
     var res = {};
     for (hash in results) {
@@ -195,7 +196,7 @@ var Webcheck = exports = module.exports = function Webcheck(params) { // params 
     }
     return res;
   };
-  this.getPageObject = function(url){
+  this.getResource = function(url){
     url = shortenURL(url);
     return results[url];
   };
@@ -216,8 +217,8 @@ var Webcheck = exports = module.exports = function Webcheck(params) { // params 
     var hash;
     self.emit("startReporter", {});
     
-    async.each(results, function(po, cb){
-      async.applyEach(reporterMiddlewares, po, function(err){
+    async.each(results, function(ro, cb){
+      async.applyEach(reporterMiddlewares, ro, function(err){
         cb(err);
       });
     }, function(err){
