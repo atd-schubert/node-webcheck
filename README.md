@@ -6,10 +6,11 @@ This module is refactored completely in version v0.3.0!
 
 ## How to use
 
-*First install*
+**First install**
+
     npm install webcheck
 
-*Then run in node*:
+**Then run in node**
 
     var Webcheck = require("webcheck");
     webcheck = new Webcheck();
