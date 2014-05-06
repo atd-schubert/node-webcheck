@@ -1,7 +1,5 @@
 "use strict";
 
-// TODO: rename pageObject to Resource!!! Think on getPageObject... Rename results to getResources.
-
 var Crawler = require("crawler").Crawler;
 var util = require("util");
 var async = require("async");
@@ -52,26 +50,21 @@ var Webcheck = exports = module.exports = function Webcheck(params) { // params 
       //if(queued[result.request.href]) return;
       if(results[result.request.href]) return;
       
-      
       var ro = new Resource(result);
       queued[result.request.href] = true;
       async.applyEach(analyzerMiddlewares, ro, function callback(err){
-        if(err)console.error(err);
+        if(err) console.error(err);
         ro.clean();
       });
     },
     "onDrain": function(){ // no arguments!
-      //self.emit("finish", start, Date.now(), results);
       self.emit("finishAnalyzer", start, Date.now(), results);
-      //cb(null, results);
     }
   });
   
-  var Resource = function(result){ // result = request->result
+  var Resource = function(result){
     var ro = this;
-    //self.emit("createdResource", po);
     
-    //if(results[result.request.href]) {  console.log("A second PO!!!"+result.request.href); process.exit();}
     results[result.request.href] = this;
     
     var analysis = {};
@@ -160,7 +153,7 @@ var Webcheck = exports = module.exports = function Webcheck(params) { // params 
   };
   //: Setter, getter for Webcheck
   
-  this.getResults = function(){
+  this.getResources = function(){
     return results;
   };
   this.getReport = function(optHash){
@@ -203,17 +196,40 @@ var Webcheck = exports = module.exports = function Webcheck(params) { // params 
   
   //: Analyzer
   this.analyzer = function(opts, cb){ // opts = {maxConnections:""...}
+    var i;
+    for (i=0; i<arguments.length; i++) {
+      switch (typeof arguments[i]) {
+        case "object":
+          opts = arguments[i];
+          break;
+        case "function":
+          cb = arguments[i];
+      }
+    }
+    if(!cb || typeof cb !== "function") cb = function(){};
+  
     //EventEmitter.call(this);
     self.emit("startAnalyzer", {});
-    self.queue(opts);
-    if(cb) self.on("finishAnalyzer", cb);
+    if(opts) self.queue(opts);
+    self.on("finishAnalyzer", cb);
   };
   //util.inherits(this.analyzer, EventEmitter);
   //: End of Analyzer
   
   //: Reporter
-  this.reporter = function(opts, cb){ // opts = {}
-    //EventEmitter.call(this);
+  this.reporter = function(opts, cb){ 
+    var i;
+    for (i=0; i<arguments.length; i++) {
+      switch (typeof arguments[i]) {
+        case "object":
+          opts = arguments[i];
+          break;
+        case "function":
+          cb = arguments[i];
+      }
+    }
+    if(!cb || typeof cb !== "function") cb = function(){};
+    
     var hash;
     self.emit("startReporter", {});
     
