@@ -83,7 +83,7 @@ You can run the analyzer against a website passed in the options (optOpts = {uri
 
 If you want you can add a callback function, that receives the same arguments like the [finishAnalyzer event](#finishanalyzer-timestamp-datenow-analysisanalysis), or use the events instead...
 #### webcheck.analyzer.use(middleware)
-You can add a middleware to the analyzer by calling this function with a [middleware function](#middleware).
+You can add a middleware to the analyzer by calling this function with a [middleware function](#middlewares).
 #### webcheck.reporter(optOpts, optCallback)
 You can run the reporter, with its middlewares, against all resources that the analyzer have crawled.
 
@@ -131,7 +131,7 @@ This event have an object with a timestamp as argument and is fired when a repor
 This event have an object with a timestamp and the report of webcheck as argument and is fired when a analyzer finishes.
 
 #### addAnalysis ({name:mwName, data:data, resource:ro})
-This event have an object with a name of entry, the data that should be saved on the resource and the resource itself as argument and is fired when analysis data is saved with [resource.addAnalysis](#rogetAnalysisoptName).
+This event have an object with a name of entry, the data that should be saved on the resource and the resource itself as argument and is fired when analysis data is saved with [resource.addAnalysis](#rogetanalysisoptname).
 
 #### addReport ({level:level, name:name, data:data, resource:ro})
 This event have an object with a name of entry, the level of the report, the data that should be saved on the resource and the resource itself as argument and is fired when report data is saved with [resource.addReport](#roaddreportlevel-name-data).
