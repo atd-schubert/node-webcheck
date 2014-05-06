@@ -64,7 +64,7 @@ This module, without middlewares, would do nothing. You have to specify middlewa
 
     webcheck.analyzer.use(fn);
 
-You can use one of the [build-in middlewares](#Included-build-in-Middlewares), one of the [community middlewares](), or build your own like this way:
+You can use one of the [build-in middlewares](#included-build-in-middlewares), one of the [community middlewares](), or build your own like this way:
 
 
     webcheck.analyzer.use(function(resourceObject, callback){
@@ -72,7 +72,7 @@ You can use one of the [build-in middlewares](#Included-build-in-Middlewares), o
       callback();
     });
 
-Please read the documatation of the [resource class](#Resource-Class) for further informations...
+Please read the documatation of the [resource class](#resource-class) for further informations...
 
 
 
@@ -81,17 +81,17 @@ Please read the documatation of the [resource class](#Resource-Class) for furthe
 #### webcheck.analyzer(optOpts, optCallback)
 You can run the analyzer against a website passed in the options (optOpts = {uri:yourURL}).
 
-If you want you can add a callback function, that receives the same arguments like the [finishAnalyzer event](#finishAnalyzer), or use the events instead...
+If you want you can add a callback function, that receives the same arguments like the [finishAnalyzer event](#finishanalyzer-timestamp-datenow-analysisanalysis), or use the events instead...
 #### webcheck.analyzer.use(middleware)
-You can add a middleware to the analyzer by calling this function with a [middleware function](#Middleware).
+You can add a middleware to the analyzer by calling this function with a [middleware function](#middleware).
 #### webcheck.reporter(optOpts, optCallback)
 You can run the reporter, with its middlewares, against all resources that the analyzer have crawled.
 
-If you want you can add a callback function, that receives the same arguments like the [finishReporter event](#finishReporter), or use the events instead...
+If you want you can add a callback function, that receives the same arguments like the [finishReporter event](#finishreporter-timestamp-datenow-reportreport), or use the events instead...
 #### webcheck.reporter.use(middleware)
-You can add a middleware to the reporter by calling this function with a [middleware function](#Middlewares).
+You can add a middleware to the reporter by calling this function with a [middleware function](#middlewares).
 #### webcheck.getResources()
-This method receives an associative array by url of all analyzed [resources objects](#Resource-Class).
+This method receives an associative array by url of all analyzed [resources objects](#resource-class).
 #### webcheck.getResource(url)
 This method receives a resource-object of a specific crawled url.
 #### webcheck.getAnalysis(optUrl)
@@ -131,10 +131,10 @@ This event have an object with a timestamp as argument and is fired when a repor
 This event have an object with a timestamp and the report of webcheck as argument and is fired when a analyzer finishes.
 
 #### addAnalysis ({name:mwName, data:data, resource:ro})
-This event have an object with a name of entry, the data that should be saved on the resource and the resource itself as argument and is fired when analysis data is saved with [resource.addAnalysis](#ro.getAnalysis(optName)).
+This event have an object with a name of entry, the data that should be saved on the resource and the resource itself as argument and is fired when analysis data is saved with [resource.addAnalysis](#rogetAnalysisoptName).
 
 #### addReport ({level:level, name:name, data:data, resource:ro})
-This event have an object with a name of entry, the level of the report, the data that should be saved on the resource and the resource itself as argument and is fired when report data is saved with [resource.addReport](#ro.addReport(optName)).
+This event have an object with a name of entry, the level of the report, the data that should be saved on the resource and the resource itself as argument and is fired when report data is saved with [resource.addReport](#roaddreportlevel-name-data).
 
 #### resource (resource)
 This is fired when a new resource have been crawled
@@ -183,7 +183,7 @@ This Class doesn't have an EventEmitter but emits these events on the webcheck o
 * resource
 * resource:{url}
 
-Please look at [events of webcheck](#Events-of-webcheck) for further informations.
+Please look at [events of webcheck](#events-of-webcheck) for further informations.
 
 ## Middlewares
 A middleware is a function that get passed a ResourceObject and a callback function. You can build them like this:
