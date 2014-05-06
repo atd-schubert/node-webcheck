@@ -53,8 +53,6 @@ var Webcheck = exports = module.exports = function Webcheck(params) { // params 
       
       var po = new PageObject(result);
       queued[result.request.href] = true;
-      self.emit("resource:", po);
-      self.emit("resource:"+result.request.href, po);
       async.applyEach(analyzerMiddlewares, po, function callback(err){
         if(err)console.error(err);
         po.clean();
@@ -69,8 +67,6 @@ var Webcheck = exports = module.exports = function Webcheck(params) { // params 
   
   var PageObject = function(result){ // result = request->result
     var po = this;
-    
-
     
     //if(results[result.request.href]) {  console.log("A second PO!!!"+result.request.href); process.exit();}
     results[result.request.href] = this;
@@ -93,6 +89,8 @@ var Webcheck = exports = module.exports = function Webcheck(params) { // params 
     po.addAnalysis = function(hash, data) { // emit addAnalysis emit("addAnalysis", {po:po, analysis:data}); emit("addAnalysis:"+hash, {po:po, analysis:data}); emit("addAnalysis:"+po.getURL()+":"+hash, {po:po, analysis:data});
 
       analysis[hash] = data;
+      
+      self.emit("analysis", {name:hash, data:data, pageObject:po});
       return po;
     };
     po.removeAnalysis = function(hash) {
@@ -106,6 +104,7 @@ var Webcheck = exports = module.exports = function Webcheck(params) { // params 
     po.addReport = function(level, name, data) { // emit addReport
       if(!report[name]) report[name] = {};
       report[name][level] = data; // recommandations for data: {message: "", test: "Name of the test"}
+      self.emit("report", {level:level, name:name, data:data, pageObject:po});
       return po;
     };
     po.getReport = function(optHash, optName) {
@@ -149,10 +148,13 @@ var Webcheck = exports = module.exports = function Webcheck(params) { // params 
     };
     po.clean = function(){ // procedure to free memory
       result = false;
+      po.follow = po.addResource;
     };
     
     self.emit("resource", po);
-    self.emit("resource:"+result.request.href, po);    
+    self.emit("resource:"+result.request.href, po);
+    
+    self.emit("createdPageObject", po); 
   };
   //util.inherits(PageObject, EventEmitter);
   //: Setter, getter for Webcheck
@@ -160,14 +162,6 @@ var Webcheck = exports = module.exports = function Webcheck(params) { // params 
   this.getResults = function(){
     return results;
   };
-  /*this.getJSONResults = function(){
-    var hash;
-    var res = {};
-    for (hash in results) {
-      res[hash] = {analysis:results[hash].getAnalysis(), report:results[hash].getReport()};
-    }
-    return res;
-  };*/
   this.getReport = function(optHash){
     if(optHash) return this.getPageObject(optHash).getReport();
     var hash;
@@ -209,6 +203,7 @@ var Webcheck = exports = module.exports = function Webcheck(params) { // params 
   //: Analyzer
   this.analyzer = function(opts, cb){ // opts = {maxConnections:""...}
     //EventEmitter.call(this);
+    self.emit("startAnalyzer", {});
     self.queue(opts);
     if(cb) self.on("finishAnalyzer", cb);
   };
@@ -219,12 +214,14 @@ var Webcheck = exports = module.exports = function Webcheck(params) { // params 
   this.reporter = function(opts, cb){ // opts = {}
     //EventEmitter.call(this);
     var hash;
+    self.emit("startReporter", {});
     
     async.each(results, function(po, cb){
       async.applyEach(reporterMiddlewares, po, function(err){
         cb(err);
       });
     }, function(err){
+      self.emit("finishReporter", {});
       cb(err, self.getReport(), self.getReverseReport());
     });
     
