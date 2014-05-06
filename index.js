@@ -70,7 +70,7 @@ var Webcheck = exports = module.exports = function Webcheck(params) { // params 
     var analysis = {};
     var report = {};
     var resources = {}; // {"http://url": count}
-    var refferers = {}; // {"http://url": count}
+    var referrers = {}; // {"http://url": count}
     var roURL = result.request.href;
     
     ro.getResult = function(){
@@ -103,9 +103,9 @@ var Webcheck = exports = module.exports = function Webcheck(params) { // params 
       self.emit("addReport", {level:level, name:name, data:data, resource:ro});
       return ro;
     };
-    ro.getReport = function(optHash, optName) {
-      if(optName) return report[optHash] ? report[optHash][optName] : {};
-      if(optHash) return report[optHash];
+    ro.getReport = function(optHash, optLevel) {
+      if(optLevel) return report[optHash] ? report[optHash][optLevel] : {};
+      if(optHash) return report[optHash] || {};
       return report;
     };
     ro.follow = function(href) {
@@ -122,10 +122,10 @@ var Webcheck = exports = module.exports = function Webcheck(params) { // params 
       if(resources[href]) resources[href]++;
       else resources[href] = 1;
       
-      var refferer = self.getResource(href);
-      if(refferer) refferer.addRefferer(ro.getURL());
-      else self.on("resource:"+href, function(refferer){
-        refferer.addRefferer(ro.getURL());
+      var referrer = self.getResource(href);
+      if(referrer) referrer.addReferrer(ro.getURL());
+      else self.on("resource:"+href, function(referrer){
+        referrer.addReferrer(ro.getURL());
       });
       
       return ro;
@@ -133,13 +133,13 @@ var Webcheck = exports = module.exports = function Webcheck(params) { // params 
     ro.getResources = function() {
       return resources;
     };
-    ro.getRefferers = function() {
-      return refferers;
+    ro.getReferrers = function() {
+      return referrers;
     };
-    ro.addRefferer = function(href) {
+    ro.addReferrer = function(href) {
       href = shortenURL(href);
-      if(refferers[href]) refferers[href]++
-      else refferers[href] = 1;
+      if(referrers[href]) referrers[href]++
+      else referrers[href] = 1;
       return ro;
     };
     ro.clean = function(){ // procedure to free memory
@@ -209,7 +209,7 @@ var Webcheck = exports = module.exports = function Webcheck(params) { // params 
     if(!cb || typeof cb !== "function") cb = function(){};
   
     //EventEmitter.call(this);
-    self.emit("startAnalyzer", {timestamp: Date.now();});
+    self.emit("startAnalyzer", {timestamp: Date.now()});
     if(opts) self.queue(opts);
     self.on("finishAnalyzer", cb);
   };
@@ -240,6 +240,7 @@ var Webcheck = exports = module.exports = function Webcheck(params) { // params 
     }, function(err){
       var r = self.getReport();
       self.emit("finishReporter", {report: r, timestamp:Date.now()});
+      if(err) {self.emit("error", err); self.emit("reporterError", err);}
       cb(err, r, self.getReverseReport());
     });
     
