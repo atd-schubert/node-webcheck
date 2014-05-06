@@ -1,221 +1,251 @@
 "use strict";
 
-var crawler = require("./lib/crawler");
-var path = require("path");
+var Crawler = require("crawler").Crawler;
+var util = require("util");
 var async = require("async");
-var Worker = require("./lib/job.js").Worker;
-var ree = require("./lib/ree");
+var EventEmitter = require("events").EventEmitter;
+var _ = require("underscore");
+var url = require("url");
 
-var getFn = function(elem){
-  return function(cb){
-    elem.worker.exec(cb);
-  };
-};
-      
-var getSeriesFn = function(elem){
-  return function(cb){
-    elem.worker.execSeries(cb);
-  };
-};
-var getParallelFn = function(elem){
-  return function(cb){
-    elem.worker.execParallel(cb);
-  };
+var shortenURL = function(url){
+  if(typeof url != "string") throw new Error("URL must be a string!");
+  return url.split("#")[0];
 };
 
+var Webcheck = exports = module.exports = function Webcheck(params) { // params = {url:""}
 
-var Webcheck = function(opts) {
-  if(!opts) opts = {};
-  // if(!opts.pageRoot) throw new Error("You have to specify a pageRoot to start crawling \"new Webcheck({pageRoot: 'http://nodejs.org'})\"...");
-  // TODO: logging = opts.logging || false;
-  // Read opts
-  this.pageRoot = opts.url || "http://nodejs.org";
-  this.result = {};
-  this.report = {};
+  EventEmitter.call(this);
   
-  var middlewaresAnalyzer = [];
-  var middlewaresReporter = [];
+  var results = {};
   var self = this;
+  var start;
   
+  var queued = {};
   
-  this.crawler = function(cb, opts) {
-    var start = Date.now();
-    opts = opts || {};
-    opts.eventEmitter = function(){
-      self.crawler.emit.apply(self.crawler, arguments);
+  var analyzerMiddlewares = [], reporterMiddlewares = [];
+  
+  params = params || {};
+
+  _.extend(params, {
+    maxConnections: 10,
+    timeout: 60000,
+    userAgent: "node-webcheck",
+    retries: 3,
+    retryTimeout: 10000,
+    forceUTF8: true
+  });
+  
+  var crawler = new Crawler({
+    "maxConnections": params.maxConnections,
+    "timeout": params.timeout,
+    "userAgent": params.userAgent,
+    "retries": params.retries,
+    "retryTimeout": params.retryTimeout,
+    "forceUTF8": params.forceUTF8,
+    "followRedirect":false,
+    //"jQuery":false,
+    "callback": function(error,result,$) {
+      if(error) { self.emit("error", error); self.emit("analyzerError", error);}
+      if(!result) return;
+      //if(queued[result.request.href]) return;
+      if(results[result.request.href]) return;
+      
+      
+      var po = new PageObject(result);
+      queued[result.request.href] = true;
+      self.emit("resource:", po);
+      self.emit("resource:"+result.request.href, po);
+      async.applyEach(analyzerMiddlewares, po, function callback(err){
+        if(err)console.error(err);
+        po.clean();
+      });
+    },
+    "onDrain": function(){ // no arguments!
+      //self.emit("finish", start, Date.now(), results);
+      self.emit("finishAnalyzer", start, Date.now(), results);
+      //cb(null, results);
+    }
+  });
+  
+  var PageObject = function(result){ // result = request->result
+    var po = this;
+    
+
+    
+    //if(results[result.request.href]) {  console.log("A second PO!!!"+result.request.href); process.exit();}
+    results[result.request.href] = this;
+    
+    var analysis = {};
+    var report = {};
+    var resources = {}; // {"http://url": count}
+    var refferers = {}; // {"http://url": count}
+    var poURL = result.request.href;
+    
+    po.getResult = function(){
+      return result;
     };
-    self.crawler.emit("start", start);
-    
-    crawler(self.pageRoot, opts, function(err, crawlResult){
-      if(err) return cb(err);
-      self.crawler.results = crawlResult;
-      self.crawler.status = "finished";
-      
-      self.crawler.emit("finish", start, Date.now(), crawlResult);
-      cb(null, crawlResult);
-      
-    });
-
-  };
-  ree(this.crawler);
-  
-  this.analyzer = function(cb) {
-    
-    var start;
-    
-    var pages = {};
-    var checksums = {};
-    var list = [];
-    
-    var output = self.analyzer.results = { list:list, pages:pages};
-
-    var mkPageObj = function(result){
-      
-      var target = {
-        status: result.status,
-        referrers: result.referrers,
-        checksum: result.checksum,
-        date: result.date,
-        contentType: result.contentType,
-        url: {
-          relative: "",
-          absolute: result.url
-        }
-      };
-      if(!target.referrers) target.referrers= [];
-      target.url.relative = path.relative(self.pageRoot, target.url.absolute);
-      return target;
+    po.getURL = function(){
+      return poURL;
     };
-    
-    
-    
-    var analyzeCrawled = function(err){
-      if(err) return cb(err);
-      start = Date.now();
-      self.analyzer.emit("start", start);
-      var cr = self.crawler.results;
-      var hash;
-      var path;
-      var i, n;
-      var asyncParallelArray = [];
-      var asyncSeriesArray = [];
+    po.getWebcheck = function(){
+      return self;
+    };
+    po.addAnalysis = function(hash, data) { // emit addAnalysis emit("addAnalysis", {po:po, analysis:data}); emit("addAnalysis:"+hash, {po:po, analysis:data}); emit("addAnalysis:"+po.getURL()+":"+hash, {po:po, analysis:data});
 
-      
-      var currentPO = {};
-      for (i=0; i<cr.length; i++) {
-        currentPO = mkPageObj(cr[i]);
-        list.push(currentPO);
-        pages[currentPO.url.absolute] = currentPO;
+      analysis[hash] = data;
+      return po;
+    };
+    po.removeAnalysis = function(hash) {
+      analysis[hash] = null;
+      return po;
+    };
+    po.getAnalysis = function(optHash) {
+      if (optHash) return analysis[optHash];
+      return analysis;
+    };
+    po.addReport = function(level, name, data) { // emit addReport
+      if(!report[name]) report[name] = {};
+      report[name][level] = data; // recommandations for data: {message: "", test: "Name of the test"}
+      return po;
+    };
+    po.getReport = function(optHash, optName) {
+      if(optName) return report[optHash] ? report[optHash][optName] : {};
+      if(optHash) return report[optHash];
+      return report;
+    };
+    po.follow = function(href) {
+      href = shortenURL(href);
+      po.addResource(href);
+      if(!queued[href] && href.substr(0,4)=="http") { // TODO maybe replace with url.format()[protocol]...
+        queued[href] = true;
+        self.queue(href);
       }
+      return po;
+    };
+    po.addResource = function(href) { // TODO: absolute url!
+      href = shortenURL(href);
+      if(resources[href]) resources[href]++;
+      else resources[href] = 1;
       
-      for(n=0; n<list.length; n++) {
-        for(i=0; i<middlewaresAnalyzer.length; i++) {
-          middlewaresAnalyzer[i].mkJob(list[n], output);
-        }
-      }
-      
-      for(i=0; i<middlewaresAnalyzer.length; i++) {
-        asyncParallelArray.push(getParallelFn(middlewaresAnalyzer[i]));
-        asyncSeriesArray.push(getSeriesFn(middlewaresAnalyzer[i]));
-      }
-      
-      async.series(asyncSeriesArray, function(err){
-        if(err) return cb(err);
-        async.parallel(asyncParallelArray, function(err){
-        
-          self.analyzer.status = "finished";
-          
-          self.analyzer.emit("finish", start, Date.now(), output);
-          cb(err, output);
-        });
+      var refferer = self.getPageObject(href);
+      if(refferer) refferer.addRefferer(po.getURL());
+      else self.on("resource:"+href, function(refferer){
+        refferer.addRefferer(po.getURL());
       });
       
+      return po;
     };
-    self.crawler.status === "finished" ? analyzeCrawled(null) : self.crawler(analyzeCrawled);
+    po.getResources = function() {
+      return resources;
+    };
+    po.getRefferers = function() {
+      return refferers;
+    };
+    po.addRefferer = function(href) {
+      href = shortenURL(href);
+      if(refferers[href]) refferers[href]++
+      else refferers[href] = 1;
+      return po;
+    };
+    po.clean = function(){ // procedure to free memory
+      result = false;
+    };
+    
+    self.emit("resource", po);
+    self.emit("resource:"+result.request.href, po);    
   };
-  ree(this.analyzer);
+  //util.inherits(PageObject, EventEmitter);
+  //: Setter, getter for Webcheck
   
-  this.reporter = function(cb) {
-    
-    var start;
-    var self = this;
-    
-    var reportAnalyzed = function(err){
-      if(err) return cb(err);
-      start = Date.now();
-      self.reporter.emit("start", start);
-      var result = self.analyzer.results;
-      var report = self.reporter.results = {};
-      var hash;
-      var path;
-      var i, n;
-      var asyncParallelArray = [];
-      var asyncSeriesArray = [];
-      
-      
-      for(n=0; n<result.list.length; n++) {
-        for(i=0; i<middlewaresReporter.length; i++) {
-          middlewaresReporter[i].mkJob(result.list[n], result, report);
+  this.getResults = function(){
+    return results;
+  };
+  /*this.getJSONResults = function(){
+    var hash;
+    var res = {};
+    for (hash in results) {
+      res[hash] = {analysis:results[hash].getAnalysis(), report:results[hash].getReport()};
+    }
+    return res;
+  };*/
+  this.getReport = function(optHash){
+    if(optHash) return this.getPageObject(optHash).getReport();
+    var hash;
+    var res = {};
+    for (hash in results) {
+      res[hash] = results[hash].getReport();
+    }
+    return res;
+  };
+  this.getReverseReport = function(optHash){
+    var tmp = this.getReport(optHash);
+    var url, name, level;
+    var res = {};
+    for (url in tmp) {
+      for(name in tmp[url]){
+        for(level in tmp[url][name]) {
+          res[level] = res[level] || {};
+          res[level][name] = res[level][name] || {};
+          res[level][name][url] = tmp[url][name][level];
         }
       }
-      
-      for(i=0; i<middlewaresReporter.length; i++) {
-        asyncParallelArray.push(getParallelFn(middlewaresReporter[i]));
-        asyncSeriesArray.push(getSeriesFn(middlewaresReporter[i]));
-      }
-      
-      async.series(asyncSeriesArray, function(err){
-        if(err) return cb(err);
-        async.parallel(asyncParallelArray, function(err){
-          self.reporter.status = "finished";
-          self.crawler.emit("finish", start, Date.now(), report);
-          cb(err, report);
-        });
+    }
+    return res;
+  };
+  this.getAnalysis = function(optHash){
+    if(optHash) return this.getPageObject(optHash).getAnalysis();
+    var hash;
+    var res = {};
+    for (hash in results) {
+      res[hash] = results[hash].getAnalysis();
+    }
+    return res;
+  };
+  this.getPageObject = function(url){
+    url = shortenURL(url);
+    return results[url];
+  };
+  
+  //: Analyzer
+  this.analyzer = function(opts, cb){ // opts = {maxConnections:""...}
+    //EventEmitter.call(this);
+    self.queue(opts);
+    if(cb) self.on("finishAnalyzer", cb);
+  };
+  //util.inherits(this.analyzer, EventEmitter);
+  //: End of Analyzer
+  
+  //: Reporter
+  this.reporter = function(opts, cb){ // opts = {}
+    //EventEmitter.call(this);
+    var hash;
+    for(hash in results) {
+      async.applyEach(reporterMiddlewares, results[hash], function callback(err){
+        cb(err, self.getReport());
       });
-    };
-    self.analyzer.status === "finished" ? reportAnalyzed(null) : self.analyzer(reportAnalyzed);
+    }
+    
 
+    
   };
-  ree(this.reporter);
-  this.analyzer.use = function(middleware, opts){
-    var worker = new Worker();
-    var obj = {
-      middleware: middleware,
-      worker: worker,
-      mkJob: middleware(worker)
-    };
-    middlewaresAnalyzer.push(obj);
-    this.emit("use", middleware, worker);
-    return worker;
+  //util.inherits(this.analyzer, EventEmitter);
+  //: End of Reporter
+  
+  this.analyzer.use = function(middleware){
+    
+    analyzerMiddlewares.push(middleware);
+    return self.analyzer;
   };
-  
-  this.reporter.use = function(middleware, opts){
-    var worker = new Worker();
-    var obj = {
-      middleware: middleware,
-      worker: worker,
-      mkJob: middleware(worker)
-    };
-    middlewaresReporter.push(obj);
-    this.emit("use", middleware, worker);
-    return worker;
+  this.reporter.use = function(middleware){
+    reporterMiddlewares.push(middleware);
+    //self.reporter.emit("use", middleware);
+    return self.reporter;
   };
+  this.queue = function(){crawler.queue.apply(crawler, arguments);};
   
-  
-  this.reporter.set = this.analyzer.set = this.crawler.set = function(data){
-    this.status = "finished";
-    this.results = data;
-  };
-  
-  this.crawler.status="no data";
-  this.analyzer.status="no data";
-  this.reporter.status="no data";
-  this.crawler.results=[];
-  this.analyzer.results={};
-  this.reporter.results={};
-
+  this.setMaxListeners(0);
 };
-Webcheck.middleware = require("./lib/middleware");
-Webcheck.logger = require("./lib/logger");
 
-module.exports = exports = Webcheck;
+util.inherits(Webcheck, EventEmitter);
+
+Webcheck.middlewares = require("./lib/middlewares");

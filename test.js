@@ -2,36 +2,31 @@
 var Webcheck = require("./index.js");
 
 var fs = require('fs');
-var logger = require('./lib/logger');
 
-var webchecker = new Webcheck({url: "http://digitalcourage.de/"});
-Webcheck.logger(webchecker, {workerTimeout:10000});
+var w = new Webcheck();
+w.analyzer.use(Webcheck.middlewares.analyzer.followRedirects());
+//w.analyzer.use(Webcheck.middlewares.analyzer.followHTML({filter:/https?:\/\/[a-z]*.?hype|ruhmesmeile/}));
+w.analyzer.use(Webcheck.middlewares.analyzer.followHTML({filter:/ruhmesmeile.com/}));
+w.analyzer.use(Webcheck.middlewares.analyzer.followCSS({filter:/ruhmesmeile.com/}));
+w.analyzer.use(Webcheck.middlewares.analyzer.listResources());
+w.analyzer.use(Webcheck.middlewares.analyzer.statusHTTP());
 
-webchecker.analyzer.use(Webcheck.middleware.analyze.fetchDocument({filterFn: function(po){return po.contentType.indexOf("text/html")>=0 || po.contentType.indexOf("text/css")>=0;}}));
-webchecker.analyzer.use(Webcheck.middleware.analyze.countTags({tags: ["title", "h1", "h2", "h3", "h4", "p", "b"]}));
-webchecker.analyzer.use(Webcheck.middleware.analyze.keywords());
-webchecker.analyzer.use(Webcheck.middleware.analyze.pageSpeed());
-webchecker.analyzer.use(Webcheck.middleware.analyze.W3CValidate());
-webchecker.analyzer.use(Webcheck.middleware.analyze.mimeType());
-webchecker.analyzer.use(Webcheck.middleware.analyze.img());
-
-webchecker.reporter.use(Webcheck.middleware.report.statusCodeCheck());
-webchecker.reporter.use(Webcheck.middleware.report.keywords());
-webchecker.reporter.use(Webcheck.middleware.report.W3CValidate());
-
-/*
-webchecker.crawler.set(require("./crawler.json"));
-
-webchecker.analyzer.set(require("./analyzer.json"));
-*/
-
-webchecker.reporter(function(err, result){
-  var results = {
-    crawler: webchecker.crawler.results,
-    analyzer: webchecker.analyzer.results,
-    reporter: webchecker.reporter.results,
-  }
-  fs.writeFile("./report.json", JSON.stringify(results, null, 4), function(err) {
-    console.log("The complete report is saved to './report.json'.");
+//w.analyzer("http://hypeinnovation.com/", function(){
+w.analyzer("http://ruhmesmeile.com/", function(){
+  console.log("FERTIG!");
+  fs.writeFile("./log-analysis.json", JSON.stringify(w.getAnalysis(),null, 2), function(err){
+    console.log("gespeichert...");
   });
+  fs.writeFile("./log-report.json", JSON.stringify(w.getReverseReport(),null, 2), function(err){
+    console.log("gespeichert...");
+  });
+  //console.log();
+});
+w.on("resource", function(po){
+  console.log(po.getURL());
+});
+w.on("error", function(po){
+  console.log("\n\nERROR\n\n");
+  console.log(po);
+  console.log("\n\n\n\n");
 });
