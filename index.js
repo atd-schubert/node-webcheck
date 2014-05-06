@@ -219,11 +219,14 @@ var Webcheck = exports = module.exports = function Webcheck(params) { // params 
   this.reporter = function(opts, cb){ // opts = {}
     //EventEmitter.call(this);
     var hash;
-    for(hash in results) {
-      async.applyEach(reporterMiddlewares, results[hash], function callback(err){
-        cb(err, self.getReport());
+    
+    async.each(results, function(po, cb){
+      async.applyEach(reporterMiddlewares, po, function(err){
+        cb(err);
       });
-    }
+    }, function(err){
+      cb(err, self.getReport(), self.getReverseReport());
+    });
     
 
     
