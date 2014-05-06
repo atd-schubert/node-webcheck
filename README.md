@@ -1,182 +1,211 @@
 ## Introduction
-This module is for analyzing websites.
+Webcheck gives you an infrastructure to analyze websites and make a report. It is build very generic for supporting a wide range of possible use cases. You are able to analyze a single page, a whole domain or even everything connected to one or more seed resources. You can analyze every content-type. Only the basic middlewares, to use webcheck, are included. But there is a [list]() with more middlewares. Please send me the link to yours if you develop one.
+
+### Notice
+This module is refactored completely in version v0.3.0!
 
 ## How to use
 
-First install:
+*First install*
     npm install webcheck
 
-Simply use:
-    
+*Then run in node*:
+
     var Webcheck = require("webcheck");
-    check = new Webcheck({url:"http://nodejs.org"});
-    check.analyzer.use(Webcheck.middleware.analyze.keywords()); // register middleware for the analyzer this way...
-    check.reporter.use(Webcheck.middleware.report.statusCodeCheck()); // register middleware for the reporter this way...
-    check.reporter(function(err, result, report){
-      if(err) return console.error(err);
-      console.log(JSON.stringify(report, null, 4));
+    webcheck = new Webcheck();
+        // first let webcheck follow different resources
+    webcheck.analyzer.use(Webcheck.middlewares.analyzer.followRedirects());
+    webcheck.analyzer.use(Webcheck.middlewares.analyzer.followHTML({filter:/example.com/}));
+    webcheck.analyzer.use(Webcheck.middlewares.analyzer.followCSS({filter:/http/}));
+    
+        // then let webcheck analyze the status code of the request and list all resources and referrers
+    
+    webcheck.analyzer.use(Webcheck.middlewares.analyzer.listResources());
+    webcheck.analyzer.use(Webcheck.middlewares.analyzer.statusHTTP());
+    
+        // if you want add your own or others middlewares!
+    webcheck.analyzer.use(function(resource, cb){
+      var headers = resource.getResult().headers;
+      resource.addAnalysis("headers", headers);
+      if(!headers['content-type']) resource.addReport("warning", "Content-Type Check", {message: "This resource has no content-type!", headers: headers});
     });
-
-### Concept of this module
-This module first crawls a webpage from given root URL. After this it can analyze the pages by adding middlewares to the analyzer from the result of the crawler. In the last step it can make a report by adding middlewares to the reporter from the result of the analyzer. There are a few implemented middlewares for analyzer and reporter, but especially the reporter-middlewares depends on your own concept. If you build a middleware that you think is missing in this module, feel free to make a pull request on [github](https://github.com/atd-schubert/node-webcheck/)...
-
-## Enhance use
-
-### Configure the crawler
-You can configure the crawler by calling the crawler separately:
-
-    var Webcheck = require("webcheck");
-    check = new Webcheck({url:"http://nodejs.org"});
-    check.crawler(callbackFunction, options);
-
-Note that the callback return the following parameters:
-- error, if there is one
-- the result of the crawler
-
-As options you can set:
-- maxConnections: number of connections at the same time (default 10)
-- timeout: time to wait for an response (default 60000)
-- userAgent: the string passed as user agent (default "node-webcheck")
-- retries: number of retries if case of failing a request (default 3)
-- retryTimeout: time to wait before request again (default 10000)
-- skipForeigners: completely pass resources that have not the same domain (default false)
-- followForeigners: crawl resources that are linked on pages wich are not on the same domain like the base URL (default false)
-- forceUTF8: convert all resources to utf-8 and don't care further on encodings (default true)
+        // Make webcheck verbose
+    webcheck.on("error", console.error);
+    webcheck.on("resource", function(resource){
+      console.log("Analyzing: "+resource.getURL());
+    })
     
-### Make this module verbose (especially for debuging)
-You can get additional informations by using the build-in logger. Activate it the following way to get detailed informations on the process:
-
-    var Webcheck = require("webcheck");
-    check = new Webcheck({url:"http://nodejs.org"});
-    Webcheck.logger(check, {workerTimeout:10000});
-    check.analyzer.use(Webcheck.middleware.analyzer.keywords()); // register middleware for the analyzer this way...
-    check.reporter.use(Webcheck.middleware.report.statusCodeCheck()); // register middleware for the reporter this way...
-    check.reporter(function(err, result, report){
+        // let webcheck start analyzing
+    webcheck.analyzer("http://www.example.com", function(err, result, report){
       if(err) return console.error(err);
-      console.log(JSON.stringify(report, null, 4));
-    });
-
-The workerTimeout specifies the time to wait to give again informations of a running worker.
-
-### Set crawler results
-If you have a (saved) result of the crawler you can set it and pass the crawling again by (you have the results set to crawlResult):
-
-    var Webcheck = require("webcheck");
-    check = new Webcheck({url:"http://nodejs.org"});
+      console.log(JSON.stringify(report, null, 2));
+      
+        // let webcheck starting the reporter
+      webcheck.reporter(function(err, report){
     
-    check.crawler.results = crawlResult;
-    check.crawler.status = "finished";
-    
-    check.reporter(function(err, result, report){
-      if(err) return console.error(err);
-      console.log(JSON.stringify(report, null, 4));
-    });
-### Set analyzer results
-If you have a (saved) result of the analyzer you can set it and pass the analyzing again by (you have the results set to analyzerResult):
-
-    var Webcheck = require("webcheck");
-    check = new Webcheck({pageRoot:"http://nodejs.org"});
-    
-    check.analyzer.results = analyzerResult;
-    check.analyzer.status = "finished";
-    
-    check.reporter(function(err, result, report){
-      if(err) return console.error(err);
-      console.log(JSON.stringify(report, null, 4));
-    });
-
-Note: you can connect the both methods of setting results...
-
-## List of middlewares bundled in this module
-For further informations please look at /lib/middleware.
-### Analyzer
-- mimeType
-- pageSpeed
-- seo (group)
-- fetchDocument
-- img
-- countTags
-- keywords
-- W3CValidate
-
-### Reporter
-- statusCodeCheck
-
-## How to build a middleware
-### Analyzer
-    exports.example = function(opts){ // Use this as a middleware template...
-      var mw = function(worker){                        // This function collect jobs
-        worker.name="Example Middleware";
+        // on report is now the normal structured report, but in many cases the reverse report is mush smarter...
+        console.log(JSON.stringify(webcheck.getReverseReport(), null, 2));
         
-        var mkJob = function(po, root){                 // This is the job that runs asynchron
-          if(po.contentType.indexOf("text/html")>=0) {
-            var fn = function(cb){
-              console.log("This is a HTML file...");
-              cb();
-            }
-            worker.addJob(fn, {method: "parallel", name:"Name of this job"});
-          }
-          return;
-        };
-        return mkJob;
-      };
-      return mw;
-    };
+      });
+    });
 
-### Reporter
-    exports.example = function(opts){ // Use this as a middleware template...
-      var mw = function(worker){                        // This function collect jobs
-        worker.name="Example Middleware";
-        
-        var mkJob = function(po, root, report){                 // This is the job that runs asynchron
-          
-          var getEntry = function(type){
-            var cs = po.checksum;
-            var url = po.url.absolute;
-            report[type]
-            if(!report[type]) report[type]={};
-            if(!report[type][worker.name]) report[type][worker.name]={};
-            if(!report[type][worker.name][cs]) report[type][worker.name][cs]={};
-            if(!report[type][worker.name][cs][url]) report[type][worker.name][cs][url]=[];
-            
-            return report[type][worker.name][cs][url];
-          };
-          
-          if(po.contentType.indexOf("text/html")>=0) {
-            var fn = function(cb){
-              getEntry("info").push("This is a HTML file...");
-              cb();
-            }
-            worker.addJob(fn, {method: "parallel", name:"Name of this job"});
-          }
-          return;
-        };
-        return mkJob;
-      };
-      return mw;
-    };
-## How to make an own logger
-For further informations please look at /lib/logger.js. You simple have to listen to the following events. 
-### Crawler
-- start: returns the timestamp of the start
-- finish: returns the timestamp of the start, the timestamp of the end, and the result from the crawler
-- base: returns the base url, that will be crawled
-- crawling: returns the URL of the element that will be crawled at the moment
-- crawlingError: returns the error that occurred during the crawling process
-- reference: returns the url of the reference that the crawler found and the url of the document where it is liked from
+## Concept of this module
+You can analyze a website in two steps.
 
-### Analyzer
-- start: returns timestamp of the start
-- finish: returns timestamp of the start, timestamp of the end and the result
-- use: returns the middleware as function and the corresponding worker as object
+The first step is webcheck.analyzer({uri:"https://example.com"}, callback). In this step your middleware can access the whole resource including the request that was fetched. All arguments are optional.
 
-### Reporer
-- start: returns timestamp of the start
-- finish: returns timestamp of the start, timestamp of the end and the result
-- use: returns the middleware as function and the corresponding worker as object
+The second step is webcheck.reporter(opts, callback). In this step your middleware can access the whole results of all crawled resources. All arguments are optional.
 
-### Middlewares
-- start-series: returns the worker as object and the timestamp of the start
-- start-parallel: returns the worker as object and the timestamp of the start
-- finish-series: returns worker as object, timestamp of start, timestamp of end
-- finish-parallel: returns worker as object, timestamp of start, timestamp of end
+_These two steps are implemented to provide huge crawls with much data but less system-resources!_
+
+This module, without middlewares, would do nothing. You have to specify middlewares for both steps before you call them, like this:
+
+
+    webcheck.analyzer.use(fn);
+
+You can use one of the [build-in middlewares](#Included-build-in-Middlewares), one of the [community middlewares](), or build your own like this way:
+
+
+    webcheck.analyzer.use(function(resourceObject, callback){
+      // do something with the resource and finish with…
+      callback();
+    });
+
+Please read the documatation of the [resource class](#Resource-Class) for further informations...
+
+
+
+## Webcheck Class
+### Methods of webcheck
+#### webcheck.analyzer(optOpts, optCallback)
+You can run the analyzer against a website passed in the options (optOpts = {uri:yourURL}).
+
+If you want you can add a callback function, that receives the same arguments like the [finishAnalyzer event](#finishAnalyzer), or use the events instead...
+#### webcheck.analyzer.use(middleware)
+You can add a middleware to the analyzer by calling this function with a [middleware function](#Middleware).
+#### webcheck.reporter(optOpts, optCallback)
+You can run the reporter, with its middlewares, against all resources that the analyzer have crawled.
+
+If you want you can add a callback function, that receives the same arguments like the [finishReporter event](#finishReporter), or use the events instead...
+#### webcheck.reporter.use(middleware)
+You can add a middleware to the reporter by calling this function with a [middleware function](#Middlewares).
+#### webcheck.getResources()
+This method receives an associative array by url of all analyzed [resources objects](#Resource-Class).
+#### webcheck.getResource(url)
+This method receives a resource-object of a specific crawled url.
+#### webcheck.getAnalysis(optUrl)
+This method receives a whole tree of analysis data or optional just from a specific url.
+#### webcheck.getReport(optUrl)
+This method receives a whole tree of a report or optional just from a specific url.
+#### webcheck.getReverseReport(optUrl)
+Inverses the structure of the json tree of the report.
+### Events of webcheck
+
+All events emitted on the webcheck object.
+
+    var webcheck = new Webcheck();
+    webcheck.on(event, fn);
+
+Webcheck emits the following events:
+
+#### error (error)
+This event have an error as argument and is fired when a middleware or the core-modules itself emits an error.
+
+#### analyzerError (error)
+This event have an error as argument and is fired when a analyzer-middleware or the analyzer itself emits an error.
+
+#### reporterError (error)
+This event have an error as argument and is fired when a reporter-middleware or the reporter itself emits an error.
+
+#### startAnalyzer ({timestamp: Date.now()})
+This event have an object with a timestamp as argument and is fired when a analyzer starts.
+
+#### finishAnalyzer ({timestamp: Date.now(), analysis:analysis})
+This event have an object with a timestamp and the analysis of webcheck as argument and is fired when a analyzer finishes.
+
+#### startReporter ({timestamp: Date.now()})
+This event have an object with a timestamp as argument and is fired when a reporter starts.
+
+#### finishReporter ({timestamp: Date.now(), report:report})
+This event have an object with a timestamp and the report of webcheck as argument and is fired when a analyzer finishes.
+
+#### addAnalysis ({name:mwName, data:data, resource:ro})
+This event have an object with a name of entry, the data that should be saved on the resource and the resource itself as argument and is fired when analysis data is saved with [resource.addAnalysis](#ro.getAnalysis(optName)).
+
+#### addReport ({level:level, name:name, data:data, resource:ro})
+This event have an object with a name of entry, the level of the report, the data that should be saved on the resource and the resource itself as argument and is fired when report data is saved with [resource.addReport](#ro.addReport(optName)).
+
+#### resource (resource)
+This is fired when a new resource have been crawled
+
+#### resource:{url} (resource)
+This is fired when a new resource have been crawled but the event specifies a specific url like: resource:http://example.com
+
+
+## Resource Class
+### Methods of Resource
+#### ro.getResult()
+This method returns the original result of the crawler. If it's possible to parse for the crawler you can work with jQuery on result.window.$.
+#### ro.getURL()
+This method returns the url of the resource.
+#### ro.getWebcheck()
+This method returns the corresponding web check object.
+#### ro.addAnalysis(name, data)
+This method can add analysis data to the resource object. You have to call this method with an identifying name and your data.
+#### ro.removeAnalysis(name)
+Remove a dataset from this resource object.
+#### ro.getAnalysis(optName)
+Returns a dataset of a given identifier or the whole tree of analysis data.
+#### ro.addReport(level, name, data)
+This method can add reports to the resource object. You have to call this method with an identifying name, a level and your report data.
+#### ro.getReport(optHash, optLevel)
+Returns a report of a given identifier and a given reporting level or the whole tree of reporting data.
+#### ro.follow(url)
+Let webcheck follow an url and add it to its resources. Also it adds referrers to the target resource.
+#### ro.addResource(url)
+Add a resource to a resource object (like a javascript file from an html document).
+#### ro.getResources()
+Returns a list of all resources
+#### ro.getReferrers()
+Returns a list of all referrers 
+#### ro.addReferrer(href)
+Add a referrer to a resource object.  
+#### ro.clean()
+This method deletes the result and disables the ability to follow an url. Normally this method is called automatically after the analyzer middleware is ready on a resource object. Normally you don’t need to call this method, so be very careful on this!
+
+### Events
+This Class doesn't have an EventEmitter but emits these events on the webcheck object:
+
+* error
+* addAnalysis
+* addReport
+* resource
+* resource:{url}
+
+Please look at [events of webcheck](#Events-of-webcheck) for further informations.
+
+## Middlewares
+A middleware is a function that get passed a ResourceObject and a callback function. You can build them like this:
+
+    webcheck.analyzer.use(function(resource, cb){
+      var headers = resource.getResult().headers;
+      resource.addAnalysis("headers", headers);
+      if(!headers['content-type']) resource.addReport("warning", "Content-Type Check", {message: "This resource has no content-type!", headers: headers});
+    });
+    
+### Use of jQuery
+If the crawler is able to parse a valid document for jQuery and jsdom you can use jQuery by calling on a resource object:
+    resource.getResult().window.$
+### Included build-in Middlewares
+#### followHTML
+This middleware follows all resources on a html document, specified by a regular expression, or add them as resource.
+   webcheck.analyzer.use(Webcheck.middleware.alanyzer.followHTML({filter:/example.com/}));
+#### followCSS
+This middleware follows all resources on a css resource, specified by a regular expression, or add them as resource.
+   webcheck.analyzer.use(Webcheck.middleware.alanyzer.followCSS({filter:/example.com/}));
+#### followRedirects
+This middleware follows redirects using a location in header.
+#### statusHTTP
+This middleware saves the status on the analysis.
+#### listResources
+This middleware saves all resources and referrers on the analysis.
