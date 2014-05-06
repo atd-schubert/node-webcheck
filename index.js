@@ -58,7 +58,7 @@ var Webcheck = exports = module.exports = function Webcheck(params) { // params 
       });
     },
     "onDrain": function(){ // no arguments!
-      self.emit("finishAnalyzer", start, Date.now(), results);
+      self.emit("finishAnalyzer", {timestamp: Date.now(), analysis: self.getAnalysis()});
     }
   });
   
@@ -209,7 +209,7 @@ var Webcheck = exports = module.exports = function Webcheck(params) { // params 
     if(!cb || typeof cb !== "function") cb = function(){};
   
     //EventEmitter.call(this);
-    self.emit("startAnalyzer", {});
+    self.emit("startAnalyzer", {timestamp: Date.now();});
     if(opts) self.queue(opts);
     self.on("finishAnalyzer", cb);
   };
@@ -231,15 +231,16 @@ var Webcheck = exports = module.exports = function Webcheck(params) { // params 
     if(!cb || typeof cb !== "function") cb = function(){};
     
     var hash;
-    self.emit("startReporter", {});
+    self.emit("startReporter", {timestamp: Date.now()});
     
     async.each(results, function(ro, cb){
       async.applyEach(reporterMiddlewares, ro, function(err){
         cb(err);
       });
     }, function(err){
-      self.emit("finishReporter", {});
-      cb(err, self.getReport(), self.getReverseReport());
+      var r = self.getReport();
+      self.emit("finishReporter", {report: r, timestamp:Date.now()});
+      cb(err, r, self.getReverseReport());
     });
     
 
