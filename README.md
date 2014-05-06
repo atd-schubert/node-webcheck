@@ -1,5 +1,5 @@
 ## Introduction
-Webcheck gives you an infrastructure to analyze websites and make a report. It is build very generic for supporting a wide range of possible use cases. You are able to analyze a single page, a whole domain or even everything connected to one or more seed resources. You can analyze every content-type. Only the basic middlewares, to use webcheck, are included. But there is a [list]() with more middlewares. Please send me the link to yours if you develop one.
+Webcheck gives you an infrastructure to analyze websites and make a report. It is build very generic for supporting a wide range of possible use cases. You are able to analyze a single page, a whole domain or even everything connected to one or more seed resources. You can analyze every content-type. Only the basic middlewares, to use webcheck, are included. But there is a [list](https://github.com/atd-schubert/node-webcheck/blob/master/MIDDLEWARES.md) with more middlewares. Please send me the link to yours if you develop one.
 
 ### Notice
 This module is refactored completely in version v0.3.0!
@@ -64,7 +64,7 @@ This module, without middlewares, would do nothing. You have to specify middlewa
 
     webcheck.analyzer.use(fn);
 
-You can use one of the [build-in middlewares](#included-build-in-middlewares), one of the [community middlewares](), or build your own like this way:
+You can use one of the [build-in middlewares](#included-build-in-middlewares), one of the [community middlewares](https://github.com/atd-schubert/node-webcheck/blob/master/MIDDLEWARES.md), or build your own like this way:
 
 
     webcheck.analyzer.use(function(resourceObject, callback){
