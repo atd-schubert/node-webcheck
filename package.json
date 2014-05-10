@@ -1,6 +1,6 @@
 {
   "name": "webcheck",
-  "version": "0.3.0",
+  "version": "0.3.rc1",
   "description": "A module to analyse websites for SEO, validation and code-quality",
   "main": "index.js",
   "scripts": {
@@ -13,8 +13,13 @@
   "keywords": [
     "SEO",
     "web",
-    "validation",
-    "pagespeed"
+    "crawler",
+    "crawl",
+    "analyzer",
+    "reporter",
+    "quality management",
+    "change management",
+    "data mining"
   ],
   "author": "Arne Schubert <atd.schubert@gmail.com>",
   "license": "BSD",
