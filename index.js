@@ -124,7 +124,7 @@ var Webcheck = function (opts) {
 
         var caller = function () {
             drained = false;
-            self.emit('run', {url:url, options:options, fn: caller});
+            self.emit('run', {url: url, options: options, fn: caller});
             queue.push({
                 url: url,
                 headers: options.headers,
@@ -132,12 +132,12 @@ var Webcheck = function (opts) {
             });
         };
 
-        this.emit('crawl', {url:url, options:options, fn: caller});
+        this.emit('crawl', {url: url, options: options, fn: caller});
 
         if (options.sleep) {
             sleepingQueue.push(caller);
             setTimeout(function () {
-                sleepingQueue.splice(sleepingQueue.indexOf(caller), 1)();
+                sleepingQueue.splice(sleepingQueue.indexOf(caller), 1)[0]();
             }, options.sleep);
         } else {
             caller();
