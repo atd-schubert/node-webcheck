@@ -1,163 +1,218 @@
 /*jslint node:true */
 
 /**
- * Webcheck core
+ * Webcheck core module
  * @author Arne Schubert <atd.schubert@gmail.com>
+ * @module webcheck
  */
 
 'use strict';
 
 var async = require('async');
 var request = require('request');
-var winston = require('winston');
 var EventEmitter = require('events').EventEmitter;
-var util = require('util');
-var cheerioize = require('./cheerioize');
 
 var pkg = require('./package.json');
 
-var std = {
-    headers: {
-        'User-Agent': pkg.name + ' ' + pkg.version
-    },
-    concurrency: 5
-};
-
 /**
  * Webcheck constuctor
- * @param opts
+ * @param {{}} [opts={}] - Options for webcheck instance
+ * @param {{}} [opts.headers] - Standard headers used for requests within the instance
+ * @param {{}} [opts.concurrency] - Standard concurrency of requests
+ * @augments EventEmitter
  * @constructor
  */
 var Webcheck = function (opts) {
-    var drained, queue, self, sleepingQueue;
+    var self, taskRunner;
 
+    /**
+     * @name webcheck.crawlSettings
+     * @type {{}}
+     * @property {string|url} url - URL to crawl
+     * @property {headers} [headers] - Headers to use for this crawl (otherwise it uses the standard headers)
+     * @property {number} [wait] - Milliseconds to wait until queuing
+     */
+    /**
+     * @name webcheck.result
+     * @type {{}}
+     * @property {string|url} url - URL to crawl
+     * @property {Webcheck.crawlSettings} settings - The settings that called this result
+     * @property {request.Request} request - The request
+     * @property {stream} response - Response returned by request
+     */
     if (!this) {
         return new Webcheck(opts);
     }
+    self = this;
 
     opts = opts || {};
-    self = this;
-    sleepingQueue = [];
-    queue = async.queue(function (task, callback) {
-        var options, req;
+    opts.concurrency = opts.concurrency || Webcheck.concurrency;
+    this.headers = opts.headers || Webcheck.headers;
 
-        options = {
-            uri: task.url,
-            headers: task.headers || opts.headers || std.headers,
-            task: task
-        };
+    /**
+     * Task runner for queue (async.queue)
+     * @private
+     * @param task
+     * @param {Webcheck~requestDoneCallback} callback
+     * @fires Webcheck#request
+     */
+    taskRunner = function runTask(task, callback) {
+        var req;
 
-        req = self.request(options)
+        /**
+         * @event Webcheck#request
+         * @type {Webcheck.crawlSettings}
+         */
+        self.emit('request', task);
+        req = self.request(task)
             .on('response', function (response) {
-                var i, obj;
-                obj = {
+                var result, done;
+                self.emit('response', response);
+                result = {
                     url: task.url,
+                    settings: task,
                     request: req,
-                    response: response
+                    response: response,
+                    done: function (err) {
+                        if (!done) {
+                            done = true;
+                            return callback(err);
+                        }
+                        console.warn('done already triggered');
+                    }
                 };
-                obj.getCheerio = function getCheerio(cb) {
-                    cheerioize(response, cb);
-                };
-                for (i = 0; i < self.middlewares.length; i += 1) {
-                    self.middlewares[i].call(self, obj);
-                }
-                callback();
+                async.applyEachSeries(self.middlewares, result, function (err) {
+                    if (err) {
+                        return callback(err);
+                    }
+                    delete result.done;
+                    /**
+                     * @event Webcheck#result
+                     * @type {Webcheck.result}
+                     */
+                    self.emit('result', result);
+
+                    if (!done) {
+                        /**
+                         * @callback Webcheck~requestDoneCallback
+                         * @param {null|error} error - Error if there was one
+                         */
+                        return callback();
+                    }
+                });
             })
             .on('error', function (err) {
-                self.logger.error('Error in request', err);
-                callback(err);
+                return callback(err);
             });
-        req.task = task;
-        // task.headers, task.url
-    }, opts.concurrency || std.concurrency);
+    };
 
-    queue.drain = function () {
-        drained = true;
+    this.queue = async.queue(taskRunner, opts.concurrency);
+    /**
+     * Drain function for async-queue
+     * @private
+     * @fires Webcheck#drain
+     */
+    this.queue.drain = function () {
+        /**
+         * Event that fires when queue has drained
+         * @event Webcheck#drain
+         * @type {undefined}
+         */
         self.emit('drain');
     };
-
-    /**
-     * A logger instantiated from winston
-     * @type {*|exports|ProfileHandler.logger}
-     */
-    this.logger = opts.logger || winston;
-    /**
-     * Request module to make requests with
-     * @type {*|responseToJSON.request|request|exports|Querystring.request|Multipart.request}
-     */
-    this.request = opts.request || request;
-    /**
-     * List of used middlewares
-     * @type {Array}
-     */
+    this.request = opts.request || Webcheck.request;
     this.middlewares = [];
+};
 
+Webcheck.prototype = {
+    '__proto__': EventEmitter.prototype,
     /**
-     * Object to write in reports
-     * @type {{}}
+     * Add a plugin to webcheck
+     * @param {Webcheck.Plugin} plugin - The plugin to add to webcheck
+     * @returns {Webcheck}
      */
-    this.report = {};
-
-    /**
-     * Add middlewares to webcheck
-     * @param middleware {function}
-     */
-    this.use = function (middleware) {
-        this.middlewares.push(middleware);
-        if (typeof middleware.init === 'function') {
-            middleware.init(this);
-        }
-        this.emit('use', middleware);
-    };
+    addPlugin: function addPlugin(plugin) {
+        this.emit('addPlugin', plugin);
+        plugin.register(this);
+        return this;
+    },
     /**
      * Crawl a resource
-     * @param url {string}
-     * @param options {{}}
-     * @returns {self}
+     * @param {Webcheck.crawlSettings} settings - Settings for crawl
+     * @param {Webcheck~queueCallback} cb - Callback for crawl
+     * @returns {Webcheck}
+     * @fires Webcheck#queue
      */
-    this.crawl = function (url, options) {
-        options = options || {};
+    crawl: function crawlResource(settings, cb) {
+        var caller;
+        settings = settings || {};
 
-        if (!url) {
-            return self.logger.error('No url specified!', new Error('No url specified!'));
+        if (typeof settings.url !== 'string') {
+            throw new Error('No url specified!');
         }
 
-        var caller = function () {
-            drained = false;
-            self.emit('run', {url: url, options: options, fn: caller});
-            queue.push({
-                url: url,
-                headers: options.headers,
-                options: options
-            });
-        };
+        settings.headers = settings.headers || this.headers;
 
-        this.emit('crawl', {url: url, options: options, fn: caller});
+        caller = function () {
+            /**
+             * @event Webcheck#queue
+             * @param {webcheck.crawlSettings}
+             */
+            this.emit('queue', settings);
+            /**
+             * @callback Webcheck~queueCallback
+             * @param {null|error} error - Throws error if there was one
+             */
+            this.queue.push(settings, cb);
+        }.bind(this);
 
-        if (options.sleep) {
-            sleepingQueue.push(caller);
-            setTimeout(function () {
-                sleepingQueue.splice(sleepingQueue.indexOf(caller), 1)[0]();
-            }, options.sleep);
+        if (typeof settings.wait === 'number') {
+            this.emit('wait', settings);
+            setTimeout(caller, settings.wait);
         } else {
             caller();
         }
         return this;
-    };
+    },
 
+    // Set in constructor
     /**
-     * Returns the status of webcheck
-     * @returns {{queueConcurrency: (number|webcheck.concurrency|q.concurrency), sleepingQueue: Number, drained: boolean}}
+     * The crawler queue
+     * @type {async.queue}
      */
-    this.getStatus = function () {
-        return {
-            queueConcurrency: opts.concurrency || std.concurrency,
-            sleepingQueue: sleepingQueue.length,
-            drained: drained
-        };
-    };
+    queue: null,
+    /**
+     * List of used middleware
+     * @type {Array}
+     */
+    middlewares: null,
+    /**
+     * Request function to use (use static defaults as fallback)
+     * @type {request|function}
+     */
+    request: null,
+    /**
+     * Default headers (use static defaults as fallback)
+     * @type {headers}
+     */
+    headers: null
 };
 
-util.inherits(Webcheck, EventEmitter);
+/**
+ * Request module to make requests with by default
+ * @type {*|responseToJSON.request|request|exports|Querystring.request|Multipart.request}
+ */
+Webcheck.request = request;
+
+/**
+ * Plugin class
+ * @type {Plugin|exports|function}
+ */
+Webcheck.Plugin = require('./plugin');
+
+Webcheck.headers = {
+    'User-Agent': pkg.name + ' ' + pkg.version
+};
+Webcheck.concurrency = 5;
 
 module.exports = Webcheck;
