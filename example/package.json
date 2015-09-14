@@ -1,0 +1,21 @@
+{
+  "name": "webcheck-example",
+  "version": "1.0.0",
+  "description": "An example how to use webcheck",
+  "main": "example.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "webcheck",
+    "example",
+    "repo",
+    "github"
+  ],
+  "dependencies": {
+    "webcheck": "^1.0.0",
+    "webcheck-cheerio": "^0.0.1"
+  },
+  "author": "Arne Schubert <atd.schubert@gmail.com>",
+  "license": "ISC"
+}
