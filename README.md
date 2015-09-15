@@ -46,7 +46,7 @@ Webcheck is small featured. You should extend your functionality with plugins. T
 
 ## Plugins
 
-For further information about plugins in webcheck take a look at the [plugin readme](PLUGIN.md).
+For further information about plugins in webcheck take a look at the [plugin readme](PLUGINS.md).
 
 ## Webcheck Class
 ### Methods of webcheck
