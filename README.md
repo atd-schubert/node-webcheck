@@ -44,62 +44,9 @@ Since version 1.0.0 webcheck uses streams instead of callbacks. It is not compat
 Webcheck is small featured. You should extend your functionality with plugins. Take a look at the
 [list of plugins](https://github.com/atd-schubert/node-webcheck/blob/master/PLUGINS.md).
 
-## Make a own Plugin
+## Plugins
 
-You have to add webcheck as dependency in your pacakge.json
-
-```json
-{
-  "dependencies": {
-    "webcheck": "~1.0.0"
-  }
-}
-```
-
-Your Plugin should have this strucutre:
-
-```js
-/*jslint node:true*/
-
-'use strict';
-
-var pkg = require('./package.json');
-
-var Plugin = require('webcheck/plugin');
-
-var ExamplePlugin = function (opts) {
-    Plugin.apply(this, arguments);
-
-    this.middleware = function (result, next) {
-        console.log(result);
-        next();
-    };
-
-    // register events on webcheck
-    this.on.result = function (result) {};
-};
-
-ExamplePlugin.prototype = {
-    __proto__: Plugin.prototype,
-
-    package: pkg
-};
-
-module.exports = ExamplePlugin;
-
-```
-
-You can add a plugin to webcheck this way
-
-```js
-var myPlugin = new MyPlugin({myOptions: true});
-webcheck.addPlugin(myPlugin);
-
-myPlugin.enable();
-```
-
-For a working example, please look at `example.js`. For further information make a jsdoc from sources.
-
+For further information about plugins in webcheck take a look at the [plugin readme](PLUGIN.md).
 
 ## Webcheck Class
 ### Methods of webcheck

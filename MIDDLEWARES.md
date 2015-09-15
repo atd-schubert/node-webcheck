@@ -1,4 +1,4 @@
-# List of middlewares
-This is a list of repositorys and links for webcheck middlewares.
+# List of middlewares (deprecated)
 
-* [A collection of different middlewares by atd-schubert.](https://github.com/atd-schubert/webcheck-middlewares)
+*Since version 1.0.0 webcheck uses plugins instead. Please look at the
+[list of plugins](https://github.com/atd-schubert/node-webcheck/blob/master/PLUGINS.md)*
