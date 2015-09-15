@@ -23,7 +23,7 @@ repository root. The best and easiest way to make a plugin is to augment this cl
 
 ### Dependency to webchecks plugin class
 
-You have to add webcheck as dependency in your pacakge.json:
+You have to add webcheck as dependency in your package.json:
 
 ```json
 {

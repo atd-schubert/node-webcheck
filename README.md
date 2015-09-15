@@ -61,14 +61,16 @@ Request a resource
 ##### List of settings
 
 * `wait | {Number}`: Time to wait till request (default: 0)
-* `headers | {{}}`: Default headers (deafult: {"User-Agent": "webcheck v1.0.0"})
+* `headers | {{}}`: Default headers (default: {"User-Agent": "webcheck v1.0.0"})
 * `request | {request}`: The used request-module
 
 ### Properties of webcheck
 
 #### webcheck.request
 
-This is a instance of [request](https://github.com/request/request). Webcheck use this as function to request a resource. If you want another request function, for example to request resources from TOR, you are able to swap this property.
+This is a instance of [request](https://github.com/request/request). Webcheck use this as function to request a
+resource. If you want another request function, for example to request resources from TOR with
+[torrequest](https://github.com/atd-schubert/torrequest), you are able to swap this property.
 
 #### webcheck.middlewares
 
