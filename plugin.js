@@ -76,7 +76,7 @@ Plugin.prototype = {
         return this;
     },
     /**
-     * @type {{}|null}
+     * @type {{}}
      */
     package: null,
     /**
@@ -88,11 +88,11 @@ Plugin.prototype = {
      */
     middleware: null,
     /**
-     * @type {{}|null}
+     * @type {{}}
      */
     on: null,
     /**
-     * @type {{}|null}
+     * @type {{}}
      */
     once: null
 };
