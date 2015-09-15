@@ -29,8 +29,9 @@ var Webcheck = function (opts) {
      * @name webcheck.crawlSettings
      * @type {{}}
      * @property {string|url} url - URL to crawl
-     * @property {headers} [headers] - Headers to use for this crawl (otherwise it uses the standard headers)
-     * @property {number} [wait] - Milliseconds to wait until queuing
+     * @property {headers} headers - Headers to use for this crawl (otherwise it uses the standard headers)
+     * @property {number} wait - Milliseconds to wait until queuing
+     * @property {boolean} preventCrawl - True if crawl should be prevented (works not async!)
      */
     /**
      * @name webcheck.result
@@ -52,18 +53,23 @@ var Webcheck = function (opts) {
     /**
      * Task runner for queue (async.queue)
      * @private
-     * @param task
+     * @param {webcheck.crawlSettings} task
      * @param {Webcheck~requestDoneCallback} callback
      * @fires Webcheck#request
      */
     taskRunner = function runTask(task, callback) {
         var req;
-
+        if (task.preventCrawl) {
+            return callback();
+        }
         /**
          * @event Webcheck#request
          * @type {Webcheck.crawlSettings}
          */
         self.emit('request', task);
+        if (task.preventCrawl) {
+            return callback();
+        }
         req = self.request(task)
             .on('response', function (response) {
                 var result, done;
@@ -138,7 +144,11 @@ Webcheck.prototype = {
     },
     /**
      * Crawl a resource
-     * @param {Webcheck.crawlSettings} settings - Settings for crawl
+     * @param {{}} settings - Settings for crawl
+     * @param {string|url} settings.url - URL to crawl
+     * @param {headers} [settings.headers] - Headers to use for this crawl (otherwise it uses the standard headers)
+     * @param {number} [settings.wait] - Milliseconds to wait until queuing
+     * @param {boolean} [settings.preventCrawl=false] - True if crawl should be prevented (works not async!)
      * @param {Webcheck~queueCallback} cb - Callback for crawl
      * @returns {Webcheck}
      * @fires Webcheck#queue
@@ -152,13 +162,18 @@ Webcheck.prototype = {
         }
 
         settings.headers = settings.headers || this.headers;
+        settings.preventCrawl = false;
 
         caller = function () {
             /**
              * @event Webcheck#queue
-             * @param {webcheck.crawlSettings}
+             * @type {webcheck.crawlSettings}
              */
             this.emit('queue', settings);
+
+            if (settings.preventCrawl) {
+                return cb();
+            }
             /**
              * @callback Webcheck~queueCallback
              * @param {null|error} error - Throws error if there was one

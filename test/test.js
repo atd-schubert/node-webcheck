@@ -53,6 +53,21 @@ describe('Webcheck', function () {
                 return done(new Error('Event not triggered'));
             });
         });
+        it('should prevent request in event settings object', function (done) {
+            webcheck.once('queue', function (settings) {
+                settings.preventCrawl = true;
+            });
+            webcheck.once('request', function () {
+                done(new Error('Request started'));
+            });
+            webcheck.crawl(settings, function (err) {
+                webcheck.removeAllListeners();
+                if (err) {
+                    return done(err);
+                }
+                return done();
+            });
+        });
         it('should fire wait and queue event if waiting', function (done) {
             var triggeredQueue,
                 triggeredWait;
