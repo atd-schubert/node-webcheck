@@ -60,9 +60,12 @@ Request a resource
 
 ##### List of settings
 
+* `url | {string}` [mandatory]: URL to crawl
 * `wait | {Number}`: Time to wait till request (default: 0)
-* `headers | {{}}`: Default headers (default: {"User-Agent": "webcheck v1.0.0"})
+* `headers | {Object}`: Default headers (default: {"User-Agent": "webcheck v1.0.0"})
 * `request | {request}`: The used request-module
+* `immediately | {boolean}`: Should the crawl push as next one to queue.
+* `parameters | {Object}`: A object to pass parameters to other plugins about this crawl
 
 ### Properties of webcheck
 
@@ -85,6 +88,7 @@ All events emitted on the webcheck object.
 
 Webcheck emits the following events:
 
+- `crawl` (request-settings): Emitted directly after calling crawl method.
 - `request` (request-settings): Emitted before request is executed.
 - `result` ({url, request-settings, request, response}): Emitted after middleware are executed and document is fetched
 - `drain`: Emitted on draining of queue

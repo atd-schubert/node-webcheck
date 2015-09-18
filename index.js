@@ -149,9 +149,12 @@ Webcheck.prototype = {
      * @param {headers} [settings.headers] - Headers to use for this crawl (otherwise it uses the standard headers)
      * @param {number} [settings.wait] - Milliseconds to wait until queuing
      * @param {boolean} [settings.preventCrawl=false] - True if crawl should be prevented (works not async!)
+     * @param {boolean} [settings.immediately=false] - True if crawl should run immediately
+     * @param {*} [settings.parameters] - Parameters to pass for further processing
      * @param {Webcheck~queueCallback} cb - Callback for crawl
      * @returns {Webcheck}
      * @fires Webcheck#queue
+     * @fires Webcheck#crawl
      */
     crawl: function crawlResource(settings, cb) {
         var caller;
@@ -164,20 +167,30 @@ Webcheck.prototype = {
         settings.headers = settings.headers || this.headers;
         settings.preventCrawl = false;
 
+        /**
+         * @event Webcheck#crawl
+         * @type {Webcheck.crawlSettings}
+         */
+        this.emit('crawl', settings);
         caller = function () {
             /**
              * @event Webcheck#queue
-             * @type {webcheck.crawlSettings}
+             * @type {Webcheck.crawlSettings}
              */
             this.emit('queue', settings);
 
             if (settings.preventCrawl) {
                 return cb();
             }
+            if (settings.immediately) {
+                return this.queue.unshift(settings, cb);
+
+            }
             /**
              * @callback Webcheck~queueCallback
              * @param {null|error} error - Throws error if there was one
              */
+
             this.queue.push(settings, cb);
         }.bind(this);
 
