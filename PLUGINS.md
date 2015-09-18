@@ -11,6 +11,9 @@ XML resources with [cheerio](https://github.com/cheeriojs/cheerio)
 crawled again
 - **[webcheck-follow](https://github.com/atd-schubert/webcheck-follow)**: Follow resources from HTML and CSS resources.
 - **[webcheck-mirror](https://github.com/atd-schubert/webcheck-mirror)**: Mirroring / copy resources.
+- **[webcheck-to-string](https://github.com/atd-schubert/webcheck-to-string)**: Converts a buffer into a string and
+provide a getString function in result.
+- **[webcheck-robots](https://github.com/atd-schubert/webcheck-robots)**: Process robots.txt.
 
 ## Make your own Plugin
 
