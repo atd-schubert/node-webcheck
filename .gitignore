@@ -8,3 +8,9 @@ _tmp/
 tmp.js
 
 .idea/
+
+typings/
+
+*.d.ts
+*.js.map
+*.js

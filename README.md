@@ -19,7 +19,7 @@ npm install webcheck
 ### Use in node.js
 
 ```js
-var Webcheck = require('webcheck');
+var Webcheck = require('webcheck').Webcheck;
 var AnyPlugin = require('webcheck-any-plugin');
 
 var webcheck = new Webcheck();
@@ -38,15 +38,19 @@ webcheck.crawl({
 });
 ```
 
-## Concept of this module
-Since version 1.0.0 webcheck uses streams instead of callbacks. It is not compatible to older versions!
 
-Webcheck is small featured. You should extend your functionality with plugins. Take a look at the
+## Concept of this module
+Since version 1.0.0 webcheck uses streams instead of callbacks. It is
+not compatible to older versions!
+
+Webcheck is small featured. You should extend your functionality with
+plugins. Take a look at the
 [list of plugins](https://github.com/atd-schubert/node-webcheck/blob/master/PLUGINS.md).
 
 ## Plugins
 
-For further information about plugins in webcheck take a look at the [plugin readme](PLUGINS.md).
+For further information about plugins in webcheck take a look at the
+[plugin readme](PLUGINS.md).
 
 ## Webcheck Class
 ### Methods of webcheck
@@ -71,9 +75,11 @@ Request a resource
 
 #### webcheck.request
 
-This is a instance of [request](https://github.com/request/request). Webcheck use this as function to request a
-resource. If you want another request function, for example to request resources from TOR with
-[torrequest](https://github.com/atd-schubert/torrequest), you are able to swap this property.
+This is a instance of [request](https://github.com/request/request).
+Webcheck use this as function to request a resource. If you want another
+request function, for example to request resources from TOR with
+[torrequest](https://github.com/atd-schubert/torrequest), you are able
+*to swap this property.
 
 #### webcheck.middlewares
 
@@ -81,18 +87,46 @@ Array of used middleware.
 
 ### Events of webcheck
 
-All events emitted on the webcheck object.
+All events emitted on the webcheck object.`
 
-    var webcheck = new Webcheck();
-    webcheck.on(event, fn);
+```js
+var webcheck = new Webcheck();
+webcheck.on(event, fn);
+```
 
 Webcheck emits the following events:
 
-- `crawl` (request-settings): Emitted directly after calling crawl method.
-- `request` (request-settings): Emitted before request is executed.
-- `result` ({url, request-settings, request, response}): Emitted after middleware are executed and document is fetched
-- `drain`: Emitted on draining of queue
-- `queue` (request-settings): Emitted before adding to queue
-- `addPlugin` (plugin): Emitted when a plugin is added
-- `enablePlugin` (plugin): Emitted when a added plugin gets enabled
-- `disablePlugin` (plugin): Emitted when a added plugin gets disabled
+* `crawl` (request-settings): Emitted directly after calling crawl method.
+* `request` (request-settings): Emitted before request is executed.
+* `result` ({url, request-settings, request, response}): Emitted after middleware are executed and document is fetched
+* `drain`: Emitted on draining of queue
+* `queue` (request-settings): Emitted before adding to queue
+* `addPlugin` (plugin): Emitted when a plugin is added
+* `enablePlugin` (plugin): Emitted when a added plugin gets enabled
+* `disablePlugin` (plugin): Emitted when a added plugin gets disabled
+
+
+## Changes on version 1.1.0
+Webcheck is (from now on) developed with
+[TypeScript](http://www.typescriptlang.org/). In the older versions we
+had exported Webcheck as module and not as class from a module.
+
+```js
+var Webcheck = require('webcheck');
+```
+
+From now on Webcheck is a class within the module `webcheck`.
+
+That means no changes for Plugin, but Webcheck should now required over:
+```js
+var Webcheck = require('webcheck').Webcheck;
+``` 
+
+*For compatibility reasons it is still possible to require Webcheck the
+old way... But the TypeScripts Typings would be incorrect!*
+
+This way you should import this module within ES6 or TypeScript:
+
+```typescript
+import { Webcheck, Plugin } from 'webcheck';
+```

@@ -2,41 +2,43 @@
 
 /*global describe, it, before, after, beforeEach, afterEach*/
 
-'use strict';
+/// <reference path="../typings/main.d.ts"/>
 
-var Webcheck = require("../");
+import { Webcheck, Plugin, IResult, ICallback } from '../index';
 
-describe('Webcheck', function () {
+describe('Webcheck', (): void => {
 
-    describe('Basic functions and events', function () {
-        var webcheck, request, response, settings;
+    
+    
+    describe('Basic functions and events', (): void => {
+        var webcheck: Webcheck, request: any, response, settings;
         settings = {
             url: 'http://unimportant.for/test'
         };
         response = {};
 
-        before(function () {
-            var spoofedEventHandler = {
-                on: function (name, fn) {
+        before((): void => {
+            var spoofedEventHandler: any = {
+                on: (name, fn): void => {
                     if (name === 'response') {
-                        setTimeout(function () {
+                        setTimeout((): void => {
                             fn(response);
                         }, 1);
                     }
                     return spoofedEventHandler;
                 },
-                once: function () {
+                once: (): void => {
                     return spoofedEventHandler;
                 }
             };
-            webcheck = new Webcheck();
-            request = function (opts) {
+            webcheck = new Webcheck({});
+            request = function () {
                 return spoofedEventHandler;
             };
             webcheck.request = request;
         });
-        it('should fire queue event', function (done) {
-            var triggered;
+        it('should fire queue event', (done: MochaDone): void => {
+            var triggered: boolean;
             webcheck.once('queue', function (s) {
                 if (s !== settings) {
                     return done(new Error('Wrong settings passed'));
@@ -53,14 +55,14 @@ describe('Webcheck', function () {
                 return done(new Error('Event not triggered'));
             });
         });
-        it('should prevent request in event settings object', function (done) {
+        it('should prevent request in event settings object', (done: MochaDone): void => {
             webcheck.once('queue', function (settings) {
                 settings.preventCrawl = true;
             });
-            webcheck.once('request', function () {
+            webcheck.once('request', (): void => {
                 done(new Error('Request started'));
             });
-            webcheck.crawl(settings, function (err) {
+            webcheck.crawl(settings, (err): void => {
                 webcheck.removeAllListeners();
                 if (err) {
                     return done(err);
@@ -68,23 +70,23 @@ describe('Webcheck', function () {
                 return done();
             });
         });
-        it('should fire wait and queue event if waiting', function (done) {
+        it('should fire wait and queue event if waiting', (done: MochaDone): void => {
             var triggeredQueue,
                 triggeredWait;
             settings.wait = 1;
-            webcheck.once('queue', function (s) {
+            webcheck.once('queue', (s): void => {
                 if (s !== settings) {
                     return done(new Error('Wrong settings passed'));
                 }
                 triggeredQueue = true;
             });
-            webcheck.once('wait', function (s) {
+            webcheck.once('wait', (s): void => {
                 if (s !== settings) {
                     return done(new Error('Wrong settings passed'));
                 }
                 triggeredWait = true;
             });
-            webcheck.crawl(settings, function (err) {
+            webcheck.crawl(settings, (err): void => {
                 if (err) {
                     return done(err);
                 }
@@ -96,15 +98,15 @@ describe('Webcheck', function () {
                 return done(new Error('Event not triggered'));
             });
         });
-        it('should fire response event and should replace replace function', function (done) {
+        it('should fire response event and should replace replace function', (done): void => {
             var triggered;
-            webcheck.once('response', function (r) {
+            webcheck.once('response', (r): void => {
                 if (r !== response) {
                     return done(new Error('Wrong response returned'));
                 }
                 triggered = true;
             });
-            webcheck.crawl(settings, function (err) {
+            webcheck.crawl(settings, (err): void => {
                 if (err) {
                     return done(err);
                 }
@@ -114,15 +116,15 @@ describe('Webcheck', function () {
                 return done(new Error('Event not triggered'));
             });
         });
-        it('should fire result event', function (done) {
+        it('should fire result event', (done: MochaDone): void => {
             var triggered;
-            webcheck.once('result', function (r) {
+            webcheck.once('result', (r): void => {
                 if (r.response !== response) {
                     return done(new Error('Wrong response returned'));
                 }
                 triggered = true;
             });
-            webcheck.crawl(settings, function (err) {
+            webcheck.crawl(settings, (err: Error): void => {
                 if (err) {
                     return done(err);
                 }
@@ -134,40 +136,43 @@ describe('Webcheck', function () {
         });
     });
 
-    describe('Middleware', function () {
-        var webcheck, request, response;
+    describe('Middleware', (): void => {
+        var webcheck: Webcheck,
+            request: any,
+            response: any;
+
         response = {};
-        before(function () {
+        before((): void => {
             var spoofedEventHandler = {
-                on: function (name, fn) {
+                on: (name, fn): any => {
                     if (name === 'response') {
-                        setTimeout(function () {
+                        setTimeout((): void => {
                             fn(response);
                         }, 1);
                     }
                     return spoofedEventHandler;
                 },
-                once: function () {
+                once: (): any => {
                     return spoofedEventHandler;
                 }
             };
-            webcheck = new Webcheck();
-            request = function (opts) {
+            webcheck = new Webcheck({});
+            request = (): any => {
                 return spoofedEventHandler;
             };
             webcheck.request = request;
         });
 
-        it('should not fire result if middleware prevent execution', function (done) {
-            webcheck.middlewares.push(function (result, next){
+        it('should not fire result if middleware prevent execution', (done: MochaDone): void => {
+            webcheck.middlewares.push((result: IResult): void => {
                 result.done();
             });
-            webcheck.once('result', function () {
+            webcheck.once('result', (): void => {
                 return done(new Error('Event triggered'));
             });
             webcheck.crawl({
                 url: 'http://unimportant.url'
-            }, function (err) {
+            }, (err: Error): void => {
                 webcheck.middlewares = [];
                 webcheck.removeAllListeners('result');
                 if (err) {
@@ -176,17 +181,17 @@ describe('Webcheck', function () {
                 return done();
             });
         });
-        it('should fire result if middleware going next', function (done) {
+        it('should fire result if middleware going next', (done: MochaDone): void => {
             var triggered;
-            webcheck.middlewares.push(function (result, next){
+            webcheck.middlewares.push((result: IResult, next: ICallback): void => {
                 next();
             });
-            webcheck.once('result', function () {
+            webcheck.once('result', (): void => {
                 triggered = true;
             });
             webcheck.crawl({
                 url: 'http://unimportant.url'
-            }, function (err) {
+            }, (err: Error): void => {
                 webcheck.middlewares = [];
                 if (err) {
                     return done(err);
@@ -197,14 +202,14 @@ describe('Webcheck', function () {
                 return done(new Error('Event not triggered'));
             });
         });
-        it('should stop middleware execution if middleware nexts error', function (done) {
+        it('should stop middleware execution if middleware nexts error', (done: MochaDone): void => {
             var error = new Error('test');
-            webcheck.middlewares.push(function (result, next){
+            webcheck.middlewares.push((result: IResult, next: ICallback): void => {
                 next(error);
             });
             webcheck.crawl({
                 url: 'http://unimportant.url'
-            }, function (err) {
+            }, (err: Error): void => {
                 webcheck.middlewares = [];
                 if (err === error) {
                     return done();
@@ -215,13 +220,15 @@ describe('Webcheck', function () {
                 return done(new Error('Error was not send'));
             });
         });
-        it('should concat middleware in the right order', function (done) {
-            var triggeredFirst, triggeredSecond;
-            webcheck.middlewares.push(function (result, next){
+        it('should concat middleware in the right order', (done: MochaDone): void => {
+            var triggeredFirst: boolean,
+                triggeredSecond: boolean;
+
+            webcheck.middlewares.push((result: IResult, next: ICallback): void => {
                 triggeredFirst = true;
                 next();
             });
-            webcheck.middlewares.push(function (result, next){
+            webcheck.middlewares.push((result: IResult, next): void => {
                 if (!triggeredFirst) {
                     return next(new Error('first middleware was not executed'));
                 }
@@ -230,7 +237,7 @@ describe('Webcheck', function () {
             });
             webcheck.crawl({
                 url: 'http://unimportant.url'
-            }, function (err) {
+            }, (err: Error): void => {
                 if (err) {
                     return done(err);
                 }
@@ -242,16 +249,16 @@ describe('Webcheck', function () {
         });
     });
 
-    describe('Plugin', function () {
-        var webcheck;
-        before(function () {
-            webcheck = new Webcheck();
+    describe('Plugin', (): void => {
+        var webcheck: Webcheck;
+        before((): void => {
+            webcheck = new Webcheck({});
         });
 
-        it('should register plugin and trigger addPlugin event', function (done) {
-            var plugin = new Webcheck.Plugin();
+        it('should register plugin and trigger addPlugin event', (done: MochaDone): void => {
+            var plugin: Plugin = new Plugin();
 
-            webcheck.once('addPlugin', function (p) {
+            webcheck.once('addPlugin', (p: Plugin): void => {
                 if (p !== plugin) {
                     return done(new Error('Wrong'));
                 }
@@ -260,10 +267,10 @@ describe('Webcheck', function () {
 
             webcheck.addPlugin(plugin);
         });
-        it('should trigger enablePlugin event', function (done) {
-            var plugin = new Webcheck.Plugin();
+        it('should trigger enablePlugin event', (done: MochaDone): void => {
+            var plugin: Plugin = new Plugin();
 
-            webcheck.once('enablePlugin', function (p) {
+            webcheck.once('enablePlugin', (p: Plugin): void => {
                 if (p !== plugin) {
                     return done(new Error('Wrong plugin send in event'));
                 }
@@ -273,10 +280,10 @@ describe('Webcheck', function () {
             webcheck.addPlugin(plugin);
             plugin.enable();
         });
-        it('should trigger disablePlugin event', function (done) {
-            var plugin = new Webcheck.Plugin();
+        it('should trigger disablePlugin event', (done: MochaDone): void => {
+            var plugin: Plugin = new Plugin();
 
-            webcheck.once('disablePlugin', function (p) {
+            webcheck.once('disablePlugin', (p: Plugin): void => {
                 if (p !== plugin) {
                     return done(new Error('Wrong plugin send in event'));
                 }
@@ -287,11 +294,11 @@ describe('Webcheck', function () {
             plugin.enable();
             plugin.disable();
         });
-        it('should add a event on enablePlugin', function (done) {
-            var test = {},
-                plugin = new Webcheck.Plugin();
+        it('should add a event on enablePlugin', (done: MochaDone): void => {
+            var test: any = {},
+                plugin: Plugin = new Plugin();
 
-            plugin.once.test = function (t) {
+            plugin.once['test'] = (t: any): void => {
                 if (test !== t) {
                     return done(new Error('Wrong parameter send on call'));
                 }
@@ -302,11 +309,11 @@ describe('Webcheck', function () {
             plugin.enable();
             webcheck.emit('test', test);
         });
-        it('should remove added event on disablePlugin', function (done) {
+        it('should remove added event on disablePlugin', (done: MochaDone): void => {
             var test = {},
-                plugin = new Webcheck.Plugin();
+                plugin: Plugin = new Plugin();
 
-            plugin.once.test = function (t) {
+            plugin.once['test'] = (t: any): void => {
                 if (test !== t) {
                     return done(new Error('Wrong parameter send on call'));
                 }

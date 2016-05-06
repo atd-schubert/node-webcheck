@@ -6,7 +6,7 @@
  */
 'use strict';
 
-var Webcheck = require('webcheck');
+var Webcheck = require('webcheck').Webcheck;
 var CheerioPlugin = require('webcheck-cheerio');
 
 var webcheck = new Webcheck();
