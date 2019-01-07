@@ -14,7 +14,7 @@ describe("Webcheck", () => {
 
         before(() => {
             const spoofedEventHandler = {
-                on(name, fn) {
+                on(name: string, fn: (arg: any) => void) {
                     if (name === "response") {
                         setTimeout(() => {
                             fn(response);
@@ -26,12 +26,12 @@ describe("Webcheck", () => {
                     return spoofedEventHandler;
                 },
             };
-            webcheck.request = () => {
+            webcheck.request = (() => {
                 return spoofedEventHandler;
-            };
+            }) as any;
         });
         it("should fire queue event", (done) => {
-            let triggered;
+            let triggered: boolean;
             webcheck.once("queue", (s) => {
                 if (s !== settings) {
                     return done(new Error("Wrong settings passed"));
@@ -64,8 +64,8 @@ describe("Webcheck", () => {
             });
         });
         it("should fire wait and queue event if waiting", (done: Mocha.Done) => {
-            let triggeredQueue;
-            let triggeredWait;
+            let triggeredQueue: boolean;
+            let triggeredWait: boolean;
 
             settings.wait = 1;
             webcheck.once("queue", (s: ICrawlOptions) => {
@@ -80,7 +80,7 @@ describe("Webcheck", () => {
                 }
                 triggeredWait = true;
             });
-            webcheck.crawl(settings, (err?: Error) => {
+            webcheck.crawl(settings, (err?: Error | null) => {
                 if (err) {
                     return done(err);
                 }
@@ -93,7 +93,7 @@ describe("Webcheck", () => {
             });
         });
         it("should fire response event and should replace replace function", (done: Mocha.Done) => {
-            let triggered;
+            let triggered: boolean;
             webcheck.once("response", (r) => {
                 if (r !== response) {
                     return done(new Error("Wrong response returned"));
@@ -111,7 +111,7 @@ describe("Webcheck", () => {
             });
         });
         it("should fire result event", (done) => {
-            let triggered;
+            let triggered: boolean;
             webcheck.once("result", (r) => {
                 if (r.response !== response) {
                     return done(new Error("Wrong response returned"));
@@ -135,7 +135,7 @@ describe("Webcheck", () => {
         const response = {};
         before(() => {
             const spoofedEventHandler = {
-                on(name, fn) {
+                on(name: string, fn: (arg: any) => void) {
                     if (name === "response") {
                         setTimeout(() => {
                             fn(response);
@@ -147,21 +147,21 @@ describe("Webcheck", () => {
                     return spoofedEventHandler;
                 },
             };
-            webcheck.request = () => {
+            webcheck.request = (() => {
                 return spoofedEventHandler;
-            };
+            }) as any;
         });
 
         it("should not fire result if middleware prevent execution", (done: Mocha.Done) => {
             webcheck.middlewares.push((result) => {
-                result.done();
+                result.done!();
             });
             webcheck.once("result", () => {
                 return done(new Error("Event triggered"));
             });
             webcheck.crawl({
                 url: "http://unimportant.url",
-            }, (err?: Error) => {
+            }, (err?: Error | null) => {
                 webcheck.middlewares.length = 0;
                 webcheck.removeAllListeners("result");
                 if (err) {
@@ -171,7 +171,7 @@ describe("Webcheck", () => {
             });
         });
         it("should fire result if middleware going next", (done: Mocha.Done) => {
-            let triggered;
+            let triggered: boolean;
             webcheck.middlewares.push((result, next) => {
                 next();
             });
@@ -180,7 +180,7 @@ describe("Webcheck", () => {
             });
             webcheck.crawl({
                 url: "http://unimportant.url",
-            }, (err?: Error) => {
+            }, (err?: Error | null) => {
                 webcheck.middlewares.length = 0;
                 if (err) {
                     return done(err);
@@ -210,8 +210,8 @@ describe("Webcheck", () => {
             });
         });
         it("should concat middleware in the right order", (done) => {
-            let triggeredFirst;
-            let triggeredSecond;
+            let triggeredFirst: boolean;
+            let triggeredSecond: boolean;
             webcheck.middlewares.push((result, next) => {
                 triggeredFirst = true;
                 next();
@@ -283,7 +283,7 @@ describe("Webcheck", () => {
             const test = {};
             const plugin = new Plugin();
 
-            (plugin as any).once.test = (t) => {
+            (plugin as any).once.test = (t: any) => {
                 if (test !== t) {
                     return done(new Error("Wrong parameter send on call"));
                 }
@@ -298,7 +298,7 @@ describe("Webcheck", () => {
             const test = {};
             const plugin = new Plugin();
 
-            (plugin as any).once.test = (t) => {
+            (plugin as any).once.test = (t: any) => {
                 if (test !== t) {
                     return done(new Error("Wrong parameter send on call"));
                 }

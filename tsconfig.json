@@ -9,11 +9,6 @@
         "allowSyntheticDefaultImports": true
     },
     "exclude": [
-        "node_modules",
-        "lib",
-        "test",
-        "browser-test",
-        "coverage",
-        "example"
+        "node_modules"
     ]
 }
