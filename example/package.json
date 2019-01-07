@@ -13,7 +13,7 @@
     "github"
   ],
   "dependencies": {
-    "webcheck": "^1.0.0",
+    "webcheck": "^2.0.0",
     "webcheck-cheerio": "^0.0.1"
   },
   "author": "Arne Schubert <atd.schubert@gmail.com>",
