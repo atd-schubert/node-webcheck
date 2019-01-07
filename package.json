@@ -1,10 +1,12 @@
 {
   "name": "webcheck",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "A module to analyse websites for SEO, validation and code-quality",
   "main": "index.js",
   "scripts": {
-    "test": "mocha"
+    "transpile": "tsc",
+    "lint": "tslint -p .",
+    "test": "npm run lint && npm run transpile && mocha"
   },
   "repository": {
     "type": "git",
@@ -27,10 +29,18 @@
     "url": "https://github.com/atd-schubert/node-webcheck/issues"
   },
   "dependencies": {
-    "async": "^1.3.0",
-    "request": "^2.58.0"
+    "@types/async": "^2.0.50",
+    "@types/node": "^10.12.18",
+    "@types/request": "^2.48.1",
+    "async": "^2.6.1",
+    "request": "^2.88.0"
   },
   "devDependencies": {
-    "mocha": "^2.2.5"
+    "@types/mocha": "^5.2.5",
+    "chai": "^4.2.0",
+    "istanbul": "^0.4.5",
+    "mocha": "^5.2.0",
+    "tslint": "^5.12.0",
+    "typescript": "^3.2.2"
   }
 }

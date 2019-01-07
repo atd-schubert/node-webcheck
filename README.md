@@ -19,7 +19,7 @@ npm install webcheck
 ### Use in node.js
 
 ```js
-var Webcheck = require('webcheck');
+var { Webcheck } = require('webcheck');
 var AnyPlugin = require('webcheck-any-plugin');
 
 var webcheck = new Webcheck();
@@ -96,3 +96,25 @@ Webcheck emits the following events:
 - `addPlugin` (plugin): Emitted when a plugin is added
 - `enablePlugin` (plugin): Emitted when a added plugin gets enabled
 - `disablePlugin` (plugin): Emitted when a added plugin gets disabled
+
+## Changes on version 1.1.0 and 1.2.0
+Webcheck is (from now on) developed with TypeScript. In the older versions we had exported Webcheck as module and not as class from a module.
+
+```js
+var Webcheck = require('webcheck');
+```
+From now on Webcheck is a class within the module webcheck.
+
+That means Webcheck must now required over:
+
+```js
+var Webcheck = require('webcheck').Webcheck;
+```
+
+It is no longer possible to require Webcheck the old way!
+
+This way you should import this module within ES6 or TypeScript:
+
+```ts
+import { Webcheck, Plugin } from 'webcheck';
+```

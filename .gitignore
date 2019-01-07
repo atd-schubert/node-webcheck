@@ -5,6 +5,7 @@ docs/
 node_modules
 lib/middleware/rm.js
 _tmp/
-tmp.js
+*.js
+*.js.map
 
 .idea/

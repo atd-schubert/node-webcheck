@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "target": "es5",
+        "strict": true,
+        "sourceMap": true,
+        "resolveJsonModule": true,
+        "outDir": ".",
+        "allowSyntheticDefaultImports": true
+    },
+    "exclude": [
+        "node_modules",
+        "lib",
+        "test",
+        "browser-test",
+        "coverage",
+        "example"
+    ]
+}
