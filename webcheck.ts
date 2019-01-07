@@ -6,7 +6,7 @@
 
 import async, { AsyncQueue } from "async";
 import { EventEmitter } from "events";
-import { ServerResponse } from "http";
+import { Response } from "request";
 import request from "request";
 import pkg = require("./package.json");
 import { IPlugin } from "./plugin";
@@ -36,7 +36,7 @@ export interface IResult {
     url: string;
     settings: ICrawlOptions;
     request: request.Request;
-    response: ServerResponse;
+    response: Response;
     done?: ICallback;
 }
 export interface IWebcheck extends EventEmitter {
@@ -85,8 +85,8 @@ export class Webcheck extends EventEmitter implements IWebcheck {
                 .on("response", (response) => {
                     let done: boolean = false;
                     this.emit("response", response);
-                    const result = {
-                        done: (err?: Error) => {
+                    const result: IResult = {
+                        done: (err?: Error | null) => {
                             if (!done) {
                                 done = true;
                                 return callback(err);
