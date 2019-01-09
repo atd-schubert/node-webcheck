@@ -6,7 +6,7 @@
   "scripts": {
     "transpile": "tsc",
     "lint": "tslint -p .",
-    "test": "npm run lint && npm run transpile && mocha"
+    "test": "npm run lint && npm run transpile && istanbul cover _mocha -- -- test/*.js"
   },
   "repository": {
     "type": "git",

@@ -8,4 +8,5 @@ _tmp/
 *.js
 *.js.map
 
+coverage/
 .idea/
