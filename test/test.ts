@@ -4,6 +4,13 @@ class Plugin extends OriginalPlugin {} // it is a abstract class...
 
 describe("Webcheck", () => {
 
+    describe("statics", () => {
+        it("should have a request function", () => {
+            if (typeof Webcheck.request !== "function") {
+                throw new Error("There is no request available");
+            }
+        });
+    });
     describe("Basic functions and events", () => {
         // var webcheck, request, response, settings;
         const webcheck = new Webcheck();

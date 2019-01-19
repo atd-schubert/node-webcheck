@@ -7,7 +7,7 @@
 import async, { AsyncQueue } from "async";
 import { EventEmitter } from "events";
 import { Response } from "request";
-import request from "request";
+import * as request from "request";
 import pkg = require("./package.json");
 import { IPlugin } from "./plugin";
 
@@ -31,6 +31,7 @@ export interface ICrawlOptions {
     preventCrawl?: boolean;
     immediately?: boolean;
     wait?: number;
+    parameters?: { [name: string]: any};
 }
 export interface IResult {
     url: string;
@@ -113,9 +114,11 @@ export class Webcheck extends EventEmitter implements IWebcheck {
                 .on("error", (err: Error) => {
                     return callback(err);
                 });
+            this.emit("requesting", req);
         };
 
         this.queue = async.queue(taskRunner, this.concurrency);
+        this.queue.drain = () => this.emit("drain");
     }
     public crawl(opts: ICrawlOptions, cb: ICallback = () => { /* do nothing */ }): this {
         if (typeof opts.url !== "string") {
